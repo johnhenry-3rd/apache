@@ -1,12 +1,64 @@
 {% extends 'artist_logs/base.html' %}
-{% load django_tables2 %}
-
-{% block extra_css %}
-<!-- Django Tables2 CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/django-tables2@2.5.2/css/django_tables2.min.css">
-{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">Artist Logs Data</h2>
-{% render_table table %}
+<h2 class="mb-4">PRS Data</h2>
+
+<!-- Filter Form -->
+<form method="get" class="mb-4">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <input type="text" name="composer" class="form-control" placeholder="Filter by Composer"
+                   value="{{ composer_filter }}">
+        </div>
+        <div class="col-md-4">
+            <input type="text" name="song_title" class="form-control" placeholder="Filter by Song Title"
+                   value="{{ song_title_filter }}">
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </div>
+        <div class="col-md-2">
+            <a href="{% url 'artist_logs:data_table' %}" class="btn btn-secondary">Clear Filters</a>
+        </div>
+    </div>
+</form>
+
+<!-- Data Table with Sortable Headers -->
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>
+                <a href="{% url 'artist_logs:data_table' %}?sort={% if sort_by == 'Composers' %}-Composers{% else %}Composers{% endif %}{% if composer_filter %}&composer={{ composer_filter }}{% endif %}{% if song_title_filter %}&song_title={{ song_title_filter }}{% endif %}">
+                    Composers
+                    {% if sort_by == 'Composers' %}↑{% elif sort_by == '-Composers' %}↓{% endif %}
+                </a>
+            </th>
+            <th>
+                <a href="{% url 'artist_logs:data_table' %}?sort={% if sort_by == 'Song_Title' %}-Song_Title{% else %}Song_Title{% endif %}{% if composer_filter %}&composer={{ composer_filter }}{% endif %}{% if song_title_filter %}&song_title={{ song_title_filter }}{% endif %}">
+                    Song Title
+                    {% if sort_by == 'Song_Title' %}↑{% elif sort_by == '-Song_Title' %}↓{% endif %}
+                </a>
+            </th>
+            <th>
+                <a href="{% url 'artist_logs:data_table' %}?sort={% if sort_by == 'Royalty_Payable' %}-Royalty_Payable{% else %}Royalty_Payable{% endif %}{% if composer_filter %}&composer={{ composer_filter }}{% endif %}{% if song_title_filter %}&song_title={{ song_title_filter }}{% endif %}">
+                    Royalty Payable
+                    {% if sort_by == 'Royalty_Payable' %}↑{% elif sort_by == '-Royalty_Payable' %}↓{% endif %}
+                </a>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in table_data %}
+        <tr>
+            <td>{{ item.Composers }}</td>
+            <td>{{ item.Song_Title }}</td>
+            <td>{{ item.Royalty_Payable }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="3">No data matches the filters.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}
