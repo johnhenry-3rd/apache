@@ -1,0 +1,56 @@
+from django.db import models
+from django_tables2 import Table
+
+class Artist(models.Model):
+    """Artist name"""
+    first_name = models.CharField(max_length=30)
+    last_name = models.CharField(max_length=30)
+    earnings_to_date =models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    vat_reg = models.CharField(max_length=1, default="N")
+    
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+
+
+class Track(models.Model):
+    """Track"""
+    artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"{self.artist} {self.name}"
+
+
+class Prs_data(models.Model):
+    Client_Code = models.IntegerField(default=0)
+    Client_Name = models.CharField(max_length=50)
+    Payee_Code = models.IntegerField(default=0)
+    Payee_Name = models.CharField(max_length=50)
+    Song_Code = models.IntegerField(default=0)
+    Song_Title = models.CharField(max_length=50)
+    Composers = models.CharField(max_length=50)
+    Source_Code = models.CharField(max_length=50)
+    Source_Name = models.CharField(max_length=50)
+    Income_Type = models.IntegerField(default=0)
+    Income_Type_Name = models.CharField(max_length=50)
+    Main_Income_Type_Name = models.CharField(max_length=50)
+    Catalogue_No = models.CharField(max_length=50)
+    Units = models.IntegerField(default=0)
+    Income_Period = models.IntegerField(default=0)
+    Percentage_Collected_by_BMG = models.IntegerField(default=0)
+    Amount_Collected = models.DecimalField(max_digits=5, decimal_places=2)
+    Royalty_Payout_Percentage = models.IntegerField(default=0)
+    Royalty_Payable = models.DecimalField(max_digits=5, decimal_places=2)
+    Domestic_Or_Foreign_Source_Indicator = models.CharField(max_length=2)
+    Foreign_Source = models.CharField(max_length=50)
+    Statement_ID_Year = models.IntegerField(default=0)
+    Statement_ID_Number = models.IntegerField(default=0)
+    Royalty_Country_Code = models.CharField(max_length=5)
+    Royalty_Country_Description = models.CharField(max_length=50)
+    Artist = models.CharField(max_length=50)
+    ISRC = models.CharField(max_length=50)
+    Album_Or_Production = models.CharField(max_length=50)
+    Episode = models.CharField(max_length=50)
+    Licence_Number = models.CharField(max_length=50)
+    Original_Source_As_Received = models.CharField(max_length=50)
+    Original_Source = models.CharField(max_length=50)

@@ -1,0 +1,38 @@
+Mistral Conversation code conv_019ecb97346670f39ef2a1e12b41f65e
+
+#Backup procedure
+#saving database
+
+# 1. Navigate to your project directory
+cd /home/mypiwh/apache/
+
+# 2. Copy the database file with a timestamp
+cp db.sqlite3 backups/db_$(date +%Y%m%d_%H%M%S).sqlite3
+
+# 3. Verify the backup
+ls -lh backups/
+
+#restoring database
+
+# 1. Stop your Django server
+# 2. Copy the backup file to your project directory
+cp /home/mypiwh/backups/db_YYYYMMDD_HHMMSS.sqlite3 /home/mypiwh/apache/db.sqlite3
+# 3. Restart your server
+python manage.py runserver
+
+#automatic backup
+
+# Edit crontab
+crontab -e
+
+Add this line:
+
+0 2 * * * /bin/bash -c 'cd /home/mypiwh/apache && cp db.sqlite3 /home/mypiwh/backups/db_$(date +\%Y\%m\%d_\%H\%M\%S).sqlite3 && find /home/mypiwh/backups -name "db_*.sqlite3" -mtime +30 -delete'
+
+#reset payments to unpaid
+
+python manage.py shell
+
+from artist_logs.models import Prs_data
+Prs_data.objects.all().update(is_paid=False)
+print(f"Reset {Prs_data.objects.count()} payments to unpaid")

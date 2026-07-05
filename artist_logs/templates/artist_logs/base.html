@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRS Data Management</title>
+    <!-- Load static files -->
+    {% load static %}
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .logo {
+            height: 400px;  /* Adjust as needed */
+            margin-right: 100px;
+        }
+        .nav-link {
+            margin-right: 15px;
+        }
+        .content {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .pagination {
+            margin-top: 20px;
+        }
+        .stats {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation with Logo -->
+    <nav>
+       <p>
+        <a href="{% url 'artist_logs:index' %}">Home</a> -
+        <a href="{% url 'artist_logs:artists' %}">Artists</a> -
+        <a href="{% url 'artist_logs:tracks' %}">Tracks</a> -
+        <a href="{% url 'artist_logs:prs_data_list' %}">PRS Data</a> -
+        <a href="{% url 'artist_logs:payment_schedule' %}">Payment Schedule</a> -
+        <a href="{% url 'artist_logs:high_value_payment_schedule' %}">High Value Payments (£100+)</a>
+    </p>
+    </nav>
+
+    <!-- Main content block for child templates -->
+    <div class="content">
+        {% block content %}{% endblock content %}
+    </div>
+</body>
+</html>

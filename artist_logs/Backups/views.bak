@@ -1,0 +1,130 @@
+from django.shortcuts import render
+from django.views.generic import ListView, DetailView, TemplateView
+from django.db.models import Sum, Count
+from .models import Prs_data, ImportedFile
+
+# Utility function for splitting composers
+def split_composers(composer_string):
+    """Split a comma-separated composer string into a list of individual composers"""
+    if not composer_string:
+        return []
+    return [c.strip() for c in composer_string.split(',') if c.strip()]
+
+class PrsDataListView(ListView):
+    model = Prs_data
+    template_name = 'artist_logs/prs_data_list.html'
+    context_object_name = 'records'
+    paginate_by = 50
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        search_query = self.request.GET.get('q')
+        if search_query:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(Client_Code__icontains=search_query) |
+                Q(Client_Name__icontains=search_query) |
+                Q(Song_Code__icontains=search_query) |
+                Q(Song_Title__icontains=search_query) |
+                Q(Artist__icontains=search_query)
+            )
+        return queryset.order_by('-id')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['total_records'] = Prs_data.objects.count()
+        context['total_amount'] = Prs_data.objects.aggregate(
+            total=Sum('Amount_Collected')
+        )['total'] or 0
+        context['imported_files'] = ImportedFile.objects.all().order_by('-imported_at')[:5]
+        context['search_query'] = self.request.GET.get('q', '')
+        return context
+
+class PrsDataDetailView(DetailView):
+    model = Prs_data
+    template_name = 'artist_logs/prs_data_detail.html'
+    context_object_name = 'record'
+
+class PaymentScheduleView(TemplateView):
+    template_name = 'artist_logs/payment_schedule.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get all PRS data
+        prs_data = Prs_data.objects.all()
+
+        # Process each record to split composers
+        individual_payments = []
+        composer_totals = {}
+
+        for record in prs_data:
+            composers = split_composers(record.Composers)
+            if not composers:
+                composers = ["Unknown"]
+
+            # Split royalty equally among composers
+            try:
+                royalty_per_composer = float(record.Royalty_Payable) / len(composers) if len(composers) > 0 else 0
+            except (TypeError, ValueError):
+                royalty_per_composer = 0
+
+            for composer in composers:
+                individual_payments.append({
+                    'Composer': composer,
+                    'Song_Code': record.Song_Code,
+                    'Song_Title': record.Song_Title,
+                    'Artist': record.Artist,
+                    'Royalty_Payable': royalty_per_composer,
+                    'Client_Code': record.Client_Code,
+                    'Income_Period': record.Income_Period,
+                })
+
+                # Update composer totals
+                if composer not in composer_totals:
+                    composer_totals[composer] = {
+                        'Composer': composer,
+                        'total_royalty': 0,
+                        'song_count': set(),
+                        'payment_count': 0
+                    }
+                composer_totals[composer]['total_royalty'] += royalty_per_composer
+                composer_totals[composer]['song_count'].add(record.Song_Code)
+                composer_totals[composer]['payment_count'] += 1
+
+        # Convert composer_totals dict to a list and calculate percentages
+        composer_totals_list = []
+        grand_total = sum(data['total_royalty'] for data in composer_totals.values())
+
+        for composer, data in composer_totals.items():
+            percentage = (data['total_royalty'] / grand_total * 100) if grand_total > 0 else 0
+            composer_totals_list.append({
+                'Composer': composer,
+                'total_royalty': data['total_royalty'],
+                'song_count': len(data['song_count']),
+                'payment_count': data['payment_count'],
+                'percentage': percentage
+            })
+
+        # Sort composer_totals_list by total_royalty (descending)
+        composer_totals_list.sort(key=lambda x: x['total_royalty'], reverse=True)
+
+        # Sort individual_payments by Composer name (A-Z)
+        individual_payments.sort(key=lambda x: x['Composer'].lower())
+
+        context['individual_payments'] = individual_payments
+        context['composer_totals'] = composer_totals_list
+        context['grand_total'] = grand_total
+        context['total_composers'] = len(composer_totals_list)
+        context['total_songs'] = len(set(p['Song_Code'] for p in individual_payments))
+
+        return context
+
+def index(request):
+    return render(request, 'artist_logs/index.html')
+
+def artists(request):
+    return render(request, 'artist_logs/artists.html')
+
+def tracks(request):
+    return render(request, 'artist_logs/tracks.html')

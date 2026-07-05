@@ -1,0 +1,27 @@
+{% extends 'artist_logs/base.html' %}
+
+{% block content %}
+
+<head>
+    <title>Artist Data</title>
+    <style>
+        .geek1 {
+            list-style-type: none;
+        }
+    </style>
+</head>
+
+<p>Tracks</p>
+
+<ul class="geek1">
+    {% for track in tracks %}
+    <li>{{ track.name}}<li>
+    </li>{{ track.artist     }}</li>
+    <p> </p>
+    {% empty %}
+    <li>No tracks have been added yet.</li>
+    {% endfor %}
+</ul>
+
+{% endblock content %}
+

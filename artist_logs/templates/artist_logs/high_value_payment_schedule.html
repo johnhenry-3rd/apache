@@ -1,0 +1,263 @@
+{% extends "artist_logs/base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ page_title|default:"High Value Payment Schedule (£100+)" }}</h1>
+
+    <!-- Back to List Link -->
+    <div class="mb-3">
+        <a href="{% url 'artist_logs:prs_data_list' %}" class="btn btn-secondary">
+            ← Back to PRS Data List
+        </a>
+        <a href="{% url 'artist_logs:payment_schedule' %}" class="btn btn-outline-secondary ms-2">
+            View All Payments
+        </a>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Filters</h5>
+            <div class="row">
+                <!-- Payment Status Filter -->
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <div class="btn-group" role="group">
+                        <a href="?status=all{% if current_composer %}&composer={{ current_composer }}{% endif %}"
+                           class="btn btn-{% if current_status == 'all' %}primary{% else %}outline-primary{% endif %}">
+                            All (£{{ grand_total|floatformat:2 }})
+                        </a>
+                        <a href="?status=paid{% if current_composer %}&composer={{ current_composer }}{% endif %}"
+                           class="btn btn-{% if current_status == 'paid' %}primary{% else %}outline-primary{% endif %}">
+                            Paid (£{{ grand_total_paid|floatformat:2 }})
+                        </a>
+                        <a href="?status=unpaid{% if current_composer %}&composer={{ current_composer }}{% endif %}"
+                           class="btn btn-{% if current_status == 'unpaid' %}primary{% else %}outline-primary{% endif %}">
+                            Unpaid (£{{ grand_total_unpaid|floatformat:2 }})
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Composer Filter -->
+<div class="col-md-6">
+    <form method="get" class="form-inline">
+        <div class="input-group w-100">
+            <select name="composer" class="form-select" onchange="this.form.submit()">
+                <option value="">All Composers</option>
+                {% for composer in all_composers %}
+                <option value="{{ composer }}"
+                        {% if composer == current_composer %}selected{% endif %}>
+                    {{ composer }}
+                </option>
+                {% endfor %}
+            </select>
+            <input type="hidden" name="status" value="{{ current_status }}">
+        </div>
+    </form>
+</div>
+
+                <!-- SINGLE Composer Summary Table -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h2>High Value Composer Summary (≥£{{ min_payment_amount|floatformat:2 }})</h2>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Composer</th>
+                        <th class="text-right">Total Royalty</th>
+                        <th class="text-right">Paid</th>
+                        <th class="text-right">Unpaid</th>
+                        <th class="text-right">Songs</th>
+                        <!-- REMOVED: % of Total column -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for composer in composer_totals %}
+                    <tr>
+                        <td>
+                            <strong>{{ composer.Composer }}</strong>
+                        </td>
+                        <td class="text-right">£{{ composer.total_royalty|floatformat:2 }}</td>
+                        <td class="text-right">£{{ composer.paid_royalty|floatformat:2 }}</td>
+                        <td class="text-right">£{{ composer.unpaid_royalty|floatformat:2 }}</td>
+                        <td class="text-right">{{ composer.song_count }}</td>
+                        <!-- REMOVED: % of Total cell -->
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total</th>
+                        <th class="text-right">£{{ grand_total|floatformat:2 }}</th>
+                        <th class="text-right">£{{ grand_total_paid|floatformat:2 }}</th>
+                        <th class="text-right">£{{ grand_total_unpaid|floatformat:2 }}</th>
+                        <th class="text-right">{{ total_songs }}</th>
+                        <!-- REMOVED: % of Total footer cell -->
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+    <!-- Detailed Payment Breakdown -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2>
+                High Value Detailed Payment Breakdown (≥£{{ min_payment_amount|floatformat:2 }})
+                {% if current_composer %}
+                    for {{ current_composer }}
+                {% endif %}
+            </h2>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{% url 'artist_logs:mark_paid' %}">
+                {% csrf_token %}
+                <input type="hidden" name="composer" value="{{ current_composer }}">
+                <input type="hidden" name="status" value="{{ current_status }}">
+
+                <!-- Mark as Paid Button and Select All at the top -->
+                <div class="mb-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        {% if current_status == 'unpaid' %}
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check"></i> Mark Selected as Paid
+                            </button>
+                            {% if current_composer %}
+                                <button type="button" class="btn btn-outline-primary ms-2"
+                                        onclick="selectAllForComposer()">
+                                    Select All for {{ current_composer }}
+                                </button>
+                            {% endif %}
+                        {% endif %}
+                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" class="ms-3">
+                        <label for="selectAll" class="mb-0">Select All</label>
+                    </div>
+                    <div>
+                        <span id="selectedCount">0 payments selected</span>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="tableSelectAll" onchange="toggleTableSelectAll(this)">
+                                </th>
+                                <th>Composer</th>
+                                <th>Song Code</th>
+                                <th>Song Title</th>
+                                <th>Source Name</th>
+                                <th>Main Income Type</th>
+                                <th>Period</th>
+                                <th class="text-right">Royalty Payable</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in individual_payments %}
+                            <tr>
+                                <td>
+                                    {% if not payment.is_paid %}
+                                    <input type="checkbox" name="payment_ids" value="{{ payment.id }}"
+class="payment-checkbox">
+                                    {% endif %}
+                                </td>
+                                <td>{{ payment.Composer }}</td>
+                                <td>{{ payment.Song_Code }}</td>
+                                <td>{{ payment.Song_Title }}</td>
+                                <td>{{ payment.Source_Name }}</td>
+                                <td>{{ payment.Main_Income_Type_Name }}</td>
+                                <td>{{ payment.Income_Period }}</td>
+                                <td class="text-right">£{{ payment.Royalty_Payable|floatformat:2 }}</td>
+                                <td>
+                                    {% if payment.is_paid %}
+                                        <span class="badge bg-success">Paid</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="8" class="text-right">Total:</th>
+                                <th class="text-right">£{{ grand_total|floatformat:2 }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript for checkboxes and selected count -->
+    <script>
+    function toggleSelectAll(source) {
+        const checkboxes = document.querySelectorAll('.payment-checkbox');
+        for (let i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = source.checked;
+        }
+        updateSelectedCount();
+    }
+
+    function toggleTableSelectAll(source) {
+        const checkboxes = document.querySelectorAll('.payment-checkbox');
+        for (let i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = source.checked;
+        }
+        updateSelectedCount();
+    }
+
+    function selectAllForComposer() {
+        const checkboxes = document.querySelectorAll('.payment-checkbox:not(:checked)');
+        for (let i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = true;
+        }
+        updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+        const checkboxes = document.querySelectorAll('.payment-checkbox:checked');
+        const count = checkboxes.length;
+        const composer = '{{ current_composer|default:"all composers" }}';
+        document.getElementById('selectedCount').textContent =
+            `${count} payment${count !== 1 ? 's' : ''} selected for ${composer}`;
+    }
+
+    // Initialize selected count and event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add event listeners to all payment checkboxes
+        document.querySelectorAll('.payment-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedCount);
+        });
+
+        // Add event listener to select all checkbox
+        const selectAllCheckbox = document.getElementById('selectAll');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                toggleSelectAll(this);
+            });
+        }
+
+        
+        // Add event listener to table select all checkbox
+        const tableSelectAllCheckbox = document.getElementById('tableSelectAll');
+        if (tableSelectAllCheckbox) {
+            tableSelectAllCheckbox.addEventListener('change', function() {
+                toggleTableSelectAll(this);
+            });
+        }
+
+    // Initialize count
+    updateSelectedCount();
+});
+
+</script>
+{% endblock %}

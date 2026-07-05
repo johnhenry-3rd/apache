@@ -1,0 +1,30 @@
+{% extends 'artist_logs/base.html' %}
+
+{% block content %}
+
+<head>
+    <title>Artist Data</title>
+    <style>
+        .geek1 {
+            list-style-type: none;
+        }
+    </style>
+</head>
+
+
+<p>Artists</p>
+<p>Earnings to date</p>
+
+
+<ul class="geek1">
+    
+     {% for artist in artists %}
+    <li>{{ artist.last_name }} - {{ artist.first_name}}</li>
+    <li>£{{ artist.earnings_to_date}}</li>
+    <p></p>
+    {% empty %}
+    <li>No artists have been entered yet.</li>
+    {% endfor %}
+</ul>
+
+#{% endblock content %}

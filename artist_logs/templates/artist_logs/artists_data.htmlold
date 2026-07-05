@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Artist Data</title>
+</head>
+<body>
+    <h1>Artist Data</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>First Name</th>
+                <th>Last Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for artist in artist_df.itertuples %}
+            <tr>
+                <td>{{ artist.first_name }}</td>
+                <td>{{ artist.last_name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

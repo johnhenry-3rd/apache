@@ -1,0 +1,81 @@
+from django.core.management.base import BaseCommand
+from django.db import connection, transaction
+from django.db.migrations.executor import MigrationExecutor
+from django.db.migrations.recorder import MigrationRecorder
+
+class Command(BaseCommand):
+    help = 'Removes the unique constraint from Prs_data model'
+
+    def handle(self, *args, **options):
+        # Method 1: Try to drop the constraint directly
+        with connection.schema_editor() as schema_editor:
+            try:
+                # For SQLite
+                if connection.vendor == 'sqlite':
+                    # Get all indexes on the table
+                    with connection.cursor() as cursor:
+                        cursor.execute("PRAGMA index_list('artist_logs_prs_data');")
+                        indexes = cursor.fetchall()
+
+                        for index in indexes:
+                            index_name = index[1]  # Name is the second element
+                            if 'unique' in index_name.lower() or 'client_song_income' in index_name.lower():
+                                self.stdout.write(f"Dropping index: {index_name}")
+                                schema_editor.execute(
+                                    f"DROP INDEX IF EXISTS {index_name};"
+                                )
+
+                # For PostgreSQL
+                elif connection.vendor == 'postgresql':
+                    schema_editor.execute("""
+                        ALTER TABLE artist_logs_prs_data
+                        DROP CONSTRAINT IF EXISTS unique_client_song_income_period;
+                    """)
+
+                # For MySQL
+                elif connection.vendor == 'mysql':
+                    schema_editor.execute("""
+                        ALTER TABLE artist_logs_prs_data
+                        DROP INDEX unique_client_song_income_period;
+                    """)
+
+                self.stdout.write(self.style.SUCCESS("Successfully removed unique constraint!"))
+
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f"Direct removal failed: {e}"))
+
+                # Method 2: Try by recreating the table without constraints
+                self.stdout.write("Attempting to recreate table without constraints...")
+
+                try:
+                    # Get the table name
+                    table_name = 'artist_logs_prs_data'
+
+                    # Get the SQL to create the table without constraints
+                    from django.db import migrations
+                    from artist_logs.models import Prs_data
+
+                    # Create a new migration that drops and recreates the table
+                    operations = [
+                        migrations.RunSQL(
+                            # Drop the table
+                            f"DROP TABLE IF EXISTS {table_name};",
+                            # Recreate the table (Django will handle this)
+                            reverse_sql=f"/* No reverse */"
+                        )
+                    ]
+
+                    # Apply the operation
+                    with transaction.atomic():
+                        for operation in operations:
+                            operation.apply(schema_editor)
+
+                    # Recreate the table with the current model definition
+                    schema_editor.create_model(Prs_data)
+
+                    self.stdout.write(self.style.SUCCESS("Table recreated without constraints!"))
+
+                except Exception as e:
+                    transaction.rollback()
+                    self.stdout.write(self.style.ERROR(f"Failed to recreate table: {e}"))
+                    self.stdout.write("Please try the nuclear option (Solution 4 in previous message)")

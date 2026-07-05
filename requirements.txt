@@ -1,0 +1,16 @@
+asgiref==3.11.1
+Django==6.0.6
+django-pandas==0.6.7
+django-tables2==3.0.0
+djangorestframework==3.17.1
+numpy==2.4.6
+pandas==3.0.3
+pillow==12.3.0
+psycopg2-binary==2.9.12
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.2
+pytz==2026.2
+six==1.17.0
+sqlparse==0.5.5
+tabulate==0.10.0
+tabulate-django==0.3.1
