@@ -1,0 +1,12 @@
+{% extends 'artist_logs/base.html' %}
+{% load django_tables2 %}
+
+{% block extra_css %}
+<!-- Django Tables2 CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/django-tables2@2.5.2/css/django_tables2.min.css">
+{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Artist Logs Data</h2>
+{% render_table table %}
+{% endblock %}

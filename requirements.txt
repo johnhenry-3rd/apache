@@ -14,3 +14,7 @@ six==1.17.0
 sqlparse==0.5.5
 tabulate==0.10.0
 tabulate-django==0.3.1
+Django==5.0
+pandas==2.0.3
+plotly==5.18.0
+django-tables2==2.5.2

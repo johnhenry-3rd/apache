@@ -1,0 +1,13 @@
+{% extends 'artist_logs/base.html' %}
+
+{% block extra_js %}
+<!-- Plotly JS -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Artist Logs Charts</h2>
+<div id="chart">
+    {{ chart|safe }}
+</div>
+{% endblock %}
