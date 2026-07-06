@@ -31,7 +31,7 @@
                                     <i class="fas fa-table fa-3x mb-3" style="color: var(--apache-gold);"></i>
                                     <h3 class="card-title">Data Table</h3>
                                     <p class="card-text">View and filter your PRS data in a sortable table format.</p>
-                                    <a href="{% url 'artist_logs:data_table' %}" class="btn btn-primary">Go to Data Table</a>
+                                    <a href="{% url 'artist_logs:data_table' %}" class="btn-standard">Go to Data Table</a>
                                 </div>
                             </div>
                         </div>
@@ -43,7 +43,7 @@
                                     <i class="fas fa-tachometer-alt fa-3x mb-3" style="color: var(--apache-gold);"></i>
                                     <h3 class="card-title">Dashboard</h3>
                                     <p class="card-text">Get an overview of your music data and statistics.</p>
-                                    <a href="{% url 'artist_logs:dashboard' %}" class="btn btn-primary">Go to Dashboard</a>
+                                    <a href="{% url 'artist_logs:dashboard' %}" class="btn-standard">Go to Dashboard</a>
                                 </div>
                             </div>
                         </div>
@@ -55,7 +55,7 @@
                                     <i class="fas fa-file-import fa-3x mb-3" style="color: var(--apache-gold);"></i>
                                     <h3 class="card-title">PRS Admin</h3>
                                     <p class="card-text">Upload and manage your PRS CSV data files.</p>
-                                    <a href="{% url 'artist_logs:prs_admin' %}" class="btn btn-primary">Go to PRS Admin</a>
+                                    <a href="{% url 'artist_logs:prs_admin' %}" class="btn-standard">Go to PRS Admin</a>
                                 </div>
                             </div>
                         </div>
@@ -71,17 +71,17 @@
 <style>
     /* Front page specific styles */
     .front-page-container {
-        min-height: calc(100vh - 80px);
+        min-height: 100vh;
         display: flex;
         flex-direction: column;
     }
 
-    /* Custom banner styling to match Apache Music color scheme */
+    /* Custom banner styling */
     .banner-container {
         width: 100%;
-        background-color: #1a1a1a;  /* Apache dark background */
+        background-color: #1a1a1a;
         padding: 30px 0;
-        border-bottom: 2px solid #c5a47e;  /* Apache gold border */
+        border-bottom: 2px solid #c5a47e;
         position: relative;
         overflow: hidden;
     }
@@ -93,12 +93,6 @@
         padding: 40px 0;
         text-align: center;
         position: relative;
-        background: linear-gradient(
-            135deg,
-            rgba(197, 164, 126, 0.1) 0%,
-            rgba(197, 164, 126, 0.05) 50%,
-            rgba(197, 164, 126, 0.1) 100%
-        );
     }
 
     .banner-content {
@@ -109,7 +103,7 @@
     .banner-title {
         font-size: 3.5rem;
         font-weight: 700;
-        color: #c5a47e;  /* Apache gold text */
+        color: #c5a47e;
         margin: 0;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         letter-spacing: 1px;
@@ -118,36 +112,13 @@
 
     .banner-subtitle {
         font-size: 1.8rem;
-        color: rgba(255, 255, 255, 0.9);  /* Slightly transparent white */
+        color: rgba(255, 255, 255, 0.9);
         margin: 10px 0 0;
         font-style: italic;
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
         font-family: 'Montserrat', sans-serif;
     }
 
-    /* Decorative gold shine effect */
-    .custom-banner::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 200%;
-        height: 100%;
-        background: linear-gradient(
-            to right,
-            transparent 0%,
-            rgba(197, 164, 126, 0.1) 50%,
-            transparent 100%
-        );
-        animation: shine 8s infinite;
-    }
-
-    @keyframes shine {
-        0% { transform: translateX(-100%); }
-        100% { transform: translateX(100%); }
-    }
-
-    /* Front page content */
     .front-page-content {
         flex: 1;
         padding: 40px 0;
@@ -164,50 +135,17 @@
     .front-page-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        border-color: #c5a47e;  /* Apache gold on hover */
+        border-color: #c5a47e;
     }
 
     .front-page-card .card-title {
-        color: #c5a47e;  /* Apache gold */
+        color: #c5a47e;
         margin-bottom: 15px;
     }
 
     .front-page-card .card-text {
         color: rgba(255, 255, 255, 0.8);
         margin-bottom: 20px;
-    }
-
-    .front-page-card .btn-primary {
-        margin-top: auto;
-        background-color: #c5a47e;  /* Apache gold */
-        border-color: #c5a47e;
-        color: #1a1a1a;  /* Dark text on gold button */
-    }
-
-    .front-page-card .btn-primary:hover {
-        background-color: #d4b896;  /* Lighter gold on hover */
-        border-color: #d4b896;
-    }
-
-    h1 {
-        color: #f8f8f8;
-        font-weight: 700;
-    }
-
-    .lead {
-        color: rgba(255, 255, 255, 0.8);
-        font-size: 1.2rem;
-    }
-
-    /* Make cards equal height */
-    .row.g-4 {
-        display: flex;
-        flex-wrap: wrap;
-    }
-
-    .col-md-4 {
-        display: flex;
-        flex-direction: column;
     }
 
     @media (max-width: 768px) {
