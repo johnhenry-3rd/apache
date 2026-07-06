@@ -47,19 +47,27 @@
             text-decoration: none;
         }
 
+        .navbar-nav {
+            align-items: center;
+        }
+
         .navbar-nav .nav-link {
-            color: var(--apache-light);
-            margin: 0 10px;
-            font-weight: 500;
-            padding: 8px 16px;
+            color: var(--apache-dark);
             background-color: var(--apache-gold);
+            padding: 8px 16px;
             border-radius: 4px;
+            margin: 0 5px;
+            font-weight: 600;
             text-decoration: none;
             display: inline-block;
+            transition: background-color 0.3s;
         }
 
         .navbar-nav .nav-link:hover {
             background-color: var(--apache-gold-light);
+        }
+
+        .navbar-nav .nav-link i {
             color: var(--apache-dark);
         }
 
@@ -87,30 +95,6 @@
             color: rgba(255, 255, 255, 0.5);
             margin-top: 40px;
         }
-
-        /* Standard Button Style */
-        .btn-standard {
-            background-color: var(--apache-gold);
-            color: var(--apache-dark);
-            padding: 8px 16px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-weight: 600;
-            display: inline-block;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .btn-standard:hover {
-            background-color: var(--apache-gold-light);
-        }
-
-        /* PRS Admin Link for non-home pages */
-        .prs-admin-link-container {
-            margin-bottom: 20px;
-            text-align: right;
-        }
     </style>
 
     {% block extra_css %}{% endblock %}
@@ -137,17 +121,16 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'artist_logs:dashboard' %}">Dashboard</a>
                     </li>
+                    <!-- PRS Admin Link as part of the navbar -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'artist_logs:prs_admin' %}">
+                            <i class="fas fa-file-import me-1"></i>PRS Admin
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
     </nav>
-
-    <!-- PRS Admin Link for non-home pages -->
-    <div class="container prs-admin-link-container">
-        <a href="{% url 'artist_logs:prs_admin' %}" class="btn-standard">
-            <i class="fas fa-file-import me-2"></i>Go to PRS Admin
-        </a>
-    </div>
     {% endif %}
 
     <!-- Main Container -->
