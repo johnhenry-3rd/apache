@@ -1,25 +1,148 @@
 {% extends 'artist_logs/base.html' %}
 
 {% block content %}
-<h2 class="mb-4">Artist Logs Dashboard</h2>
-<div class="row">
-    <div class="col-md-6">
-        <div class="card mb-4">
-            <div class="card-header">Chart 1</div>
-            <div class="card-body">
-                <!-- Embed a chart here -->
-                <p>Add your first visualization here.</p>
-            </div>
+<div class="dashboard-container">
+    <h1 class="mb-4">Dashboard</h1>
+
+    <!-- Top Earning Songs Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h2 class="mb-0">Top Earning Songs</h2>
+        </div>
+        <div class="card-body">
+            {{ top_songs_chart|safe }}
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card mb-4">
-            <div class="card-header">Chart 2</div>
-            <div class="card-body">
-                <!-- Embed another chart here -->
-                <p>Add your second visualization here.</p>
+
+    <!-- Quick Stats Section -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h3 class="mb-0">Quick Stats</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <div class="stat-card">
+                                <h4>Total Songs</h4>
+                                <p class="stat-value">{{ total_songs }}</p>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="stat-card">
+                                <h4>Total Royalty</h4>
+                                <p class="stat-value">£{{ total_royalty|floatformat:2 }}</p>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="stat-card">
+                                <h4>Top Composer</h4>
+                                <p class="stat-value">{{ top_composer }}</p>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="stat-card">
+                                <h4>Avg. Royalty</h4>
+                                <p class="stat-value">£{{ avg_royalty|floatformat:2 }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h3 class="mb-0">Top Composer</h3>
+                </div>
+                <div class="card-body">
+                    <div class="top-composer-card">
+                        <h4>{{ top_composer }}</h4>
+                        <p class="composer-royalty">Total Royalty: £{{ top_composer_royalty|floatformat:2 }}</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        padding: 20px 0;
+    }
+
+    .card {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--apache-gray);
+        margin-bottom: 20px;
+    }
+
+    .card-header {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid var(--apache-gray);
+        padding: 15px;
+    }
+
+    .card-header h2, .card-header h3 {
+        margin: 0;
+        color: var(--apache-gold);
+        font-weight: 600;
+    }
+
+    .stat-card {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--apache-gray);
+        border-radius: 5px;
+        padding: 15px;
+        text-align: center;
+    }
+
+    .stat-card h4 {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+    }
+
+    .stat-value {
+        color: var(--apache-gold);
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .top-composer-card {
+        text-align: center;
+        padding: 20px;
+    }
+
+    .top-composer-card h4 {
+        color: var(--apache-gold);
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+    }
+
+    .composer-royalty {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.1rem;
+        margin: 0;
+    }
+
+    /* Plotly chart container */
+    .js-plotly-plot {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 10px 0;
+        }
+
+        .stat-card {
+            margin-bottom: 15px;
+        }
+    }
+</style>
 {% endblock %}

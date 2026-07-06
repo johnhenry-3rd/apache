@@ -3,7 +3,7 @@
 {% block content %}
 <h2 class="mb-4">PRS Data</h2>
 
-<!-- Filter Form -->
+<!-- Filter Form - Make sure name attributes match the view -->
 <form method="get" class="mb-4">
     <div class="row g-3">
         <div class="col-md-4">
@@ -23,14 +23,14 @@
     </div>
 </form>
 
-<!-- Data Table with Sortable Headers -->
+<!-- Data Table -->
 <table class="table table-striped">
     <thead>
         <tr>
             <th>
-                <a href="{% url 'artist_logs:data_table' %}?sort={% if sort_by == 'Composers' %}-Composers{% else %}Composers{% endif %}{% if composer_filter %}&composer={{ composer_filter }}{% endif %}{% if song_title_filter %}&song_title={{ song_title_filter }}{% endif %}">
+                <a href="{% url 'artist_logs:data_table' %}?sort={% if sort_by == 'composers' %}-composers{% else %}composers{% endif %}{% if composer_filter %}&composer={{ composer_filter }}{% endif %}{% if song_title_filter %}&song_title={{ song_title_filter }}{% endif %}">
                     Composers
-                    {% if sort_by == 'Composers' %}↑{% elif sort_by == '-Composers' %}↓{% endif %}
+                    {% if sort_by == 'composers' %}↑{% elif sort_by == '-composers' %}↓{% endif %}
                 </a>
             </th>
             <th>
@@ -50,13 +50,19 @@
     <tbody>
         {% for item in table_data %}
         <tr>
-            <td>{{ item.Composers }}</td>
-            <td>{{ item.Song_Title }}</td>
-            <td>{{ item.Royalty_Payable }}</td>
+            <td>
+                {% for composer in item.composers.all %}
+                    {{ composer.name }}{% if not forloop.last %}, {% endif %}
+                {% empty %}
+                    N/A
+                {% endfor %}
+            </td>
+            <td>{{ item.Song_Title|default:"N/A" }}</td>
+            <td>£{{ item.Royalty_Payable|floatformat:2|default:"0.00" }}</td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="3">No data matches the filters.</td>
+            <td colspan="3" class="text-center">No data matches the filters.</td>
         </tr>
         {% endfor %}
     </tbody>

@@ -1,0 +1,130 @@
+{% extends 'artist_logs/base.html' %}
+
+{% load static %}
+
+{% block content %}
+<div class="front-page-container">
+    <!-- Banner Section (only on front page) -->
+    <div class="banner-container">
+        <img src="{% static 'artist_logs/images/banner1.png' %}" alt="Apache Music - music not muzak" class="apache-banner">
+    </div>
+
+    <!-- Main Content with Links -->
+    <div class="front-page-content">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8 text-center">
+                    <h1 class="mb-4">Welcome to Apache Music Artist Logs</h1>
+                    <p class="lead mb-5">
+                        Manage and analyze your music royalty data with our comprehensive tools.
+                    </p>
+
+                    <!-- Navigation Cards -->
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="card h-100 front-page-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-table fa-3x mb-3" style="color: var(--apache-gold);"></i>
+                                    <h3 class="card-title">Data Table</h3>
+                                    <p class="card-text">View and filter your PRS data in a sortable table format.</p>
+                                    <a href="{% url 'artist_logs:data_table' %}" class="btn btn-primary">Go to Data Table</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card h-100 front-page-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-chart-bar fa-3x mb-3" style="color: var(--apache-gold);"></i>
+                                    <h3 class="card-title">Charts</h3>
+                                    <p class="card-text">Visualize your royalty data with interactive charts.</p>
+                                    <a href="{% url 'artist_logs:charts' %}" class="btn btn-primary">Go to Charts</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card h-100 front-page-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-tachometer-alt fa-3x mb-3" style="color: var(--apache-gold);"></i>
+                                    <h3 class="card-title">Dashboard</h3>
+                                    <p class="card-text">Get an overview of your music data and statistics.</p>
+                                    <a href="{% url 'artist_logs:dashboard' %}" class="btn btn-primary">Go to Dashboard</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Front page specific styles */
+    .front-page-container {
+        min-height: calc(100vh - 120px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .banner-container {
+        width: 100%;
+        background-color: var(--apache-dark);
+        padding: 20px 0;
+        border-bottom: 1px solid var(--apache-gray);
+    }
+
+    .apache-banner {
+        width: 100%;
+        max-width: 1200px;
+        height: auto;
+        margin: 0 auto;
+        display: block;
+    }
+
+    .front-page-content {
+        flex: 1;
+        padding: 40px 0;
+    }
+
+    .front-page-card {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--apache-gray);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        color: var(--apache-light);
+    }
+
+    .front-page-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        border-color: var(--apache-gold);
+    }
+
+    .front-page-card .card-title {
+        color: var(--apache-gold);
+        margin-bottom: 15px;
+    }
+
+    .front-page-card .card-text {
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 20px;
+    }
+
+    .front-page-card .btn-primary {
+        margin-top: auto;
+    }
+
+    h1 {
+        color: var(--apache-light);
+        font-weight: 700;
+    }
+
+    .lead {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.2rem;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<!-- saved from url=(0030)http://localhost:8000/prs/prs/ -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRS Data Management</title>
+    <!-- Load static files -->
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .logo {
+            height: 400px;  /* Adjust as needed */
+            margin-right: 100px;
+        }
+        .nav-link {
+            margin-right: 15px;
+        }
+        .content {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .pagination {
+            margin-top: 20px;
+        }
+        .stats {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation with Logo -->
+    <nav>
+        <p>
+            <img src="./PRS Data Management3_files/logo.png" alt="PRS Data Logo" class="logo">
+            <a href="http://localhost:8000/prs/">Home</a> -
+            <a href="http://localhost:8000/prs/artists/">Artists</a> -
+            <a href="http://localhost:8000/prs/tracks/">Tracks</a> -
+            <a href="http://localhost:8000/prs/prs/">PRS Data</a> -
+            <a href="http://localhost:8000/prs/payments/">Payment Schedule</a>
+        </p>
+    </nav>
+
+    <!-- Main content block for child templates -->
+    <div class="content">
+        
+<div class="container mt-4">
+    <h1>PRS Data Records</h1>
+
+    <!-- Summary Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Records</h5>
+                    <p class="card-text">17886</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Amount</h5>
+                    <p class="card-text">£23090.16</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Recently Imported Files</h5>
+                    <ul class="list-group">
+                        
+                        <li class="list-group-item">
+                            131337_202603E.csv
+                            <span class="float-right">
+                                2026-06-14 11:20
+                                (8943 records)
+                            </span>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mb-3">
+        <a href="http://localhost:8000/prs/prs/" class="btn btn-primary">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+        </a>
+        <a href="http://localhost:8000/prs/" class="btn btn-secondary">
+            <i class="bi bi-house"></i> Home
+        </a>
+    </div>
+
+    <!-- Search Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="form-inline">
+                <div class="input-group w-100">
+                    <input type="text" class="form-control" name="q" placeholder="Search by Client Code, Song Code, Title, or Artist..." value="">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Records Table -->
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="thead-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Client</th>
+                    <th>Song</th>
+                    <th>Artist</th>
+                    <th>Period</th>
+                    <th class="text-right">Amount Collected</th>
+                    <th class="text-right">Royalty Payable</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+                <tr>
+                    <td>17886</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17886/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17885</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17885/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17884</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17884/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17883</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17883/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17882</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17882/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17881</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17881/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17880</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td></td>
+                    <td>202404202406</td>
+                    <td class="text-right">£1.48</td>
+                    <td class="text-right">£0.59</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17880/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17879</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17879/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17878</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17878/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17877</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17877/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17876</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17876/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17875</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17875/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17874</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17874/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17873</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17873/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17872</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17872/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17871</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.05</td>
+                    <td class="text-right">£0.02</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17871/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17870</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17870/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17869</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17869/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17868</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.05</td>
+                    <td class="text-right">£0.02</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17868/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17867</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17867/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17866</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17866/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17865</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17865/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17864</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17864/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17863</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17863/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17862</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17862/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17861</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>METRIK, GRAFIX</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17861/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17860</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17860/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17859</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.05</td>
+                    <td class="text-right">£0.02</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17859/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17858</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>METRIK, GRAFIX</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17858/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17857</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17857/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17856</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17856/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17855</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17855/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17854</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17854/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17853</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.07</td>
+                    <td class="text-right">£0.03</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17853/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17852</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.10</td>
+                    <td class="text-right">£0.04</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17852/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17851</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17851/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17850</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>METRIK, GRAFIX</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17850/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17849</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.07</td>
+                    <td class="text-right">£0.03</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17849/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17848</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17848/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17847</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.05</td>
+                    <td class="text-right">£0.02</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17847/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17846</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>METRIK, GRAFIX</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17846/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17845</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17845/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17844</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17844/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17843</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.05</td>
+                    <td class="text-right">£0.02</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17843/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17842</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202404202406</td>
+                    <td class="text-right">£0.05</td>
+                    <td class="text-right">£0.02</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17842/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17841</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6662304</strong><br>
+                        <small class="text-muted">Growing Shadows</small>
+                    </td>
+                    <td></td>
+                    <td>202507202509</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17841/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17840</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6089674</strong><br>
+                        <small class="text-muted">Universal Truth</small>
+                    </td>
+                    <td></td>
+                    <td>202507202509</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17840/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17839</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6072236</strong><br>
+                        <small class="text-muted">Red Skyline</small>
+                    </td>
+                    <td>GRAFIX, METRIK</td>
+                    <td>202401202403</td>
+                    <td class="text-right">£0.02</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17839/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17838</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6188677</strong><br>
+                        <small class="text-muted">Rare Air</small>
+                    </td>
+                    <td></td>
+                    <td>202507202509</td>
+                    <td class="text-right">£0.07</td>
+                    <td class="text-right">£0.03</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17838/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>17837</td>
+                    <td>
+                        <strong>131337</strong><br>
+                        <small class="text-muted">Apache Music (PM)</small>
+                    </td>
+                    <td>
+                        <strong>6086845</strong><br>
+                        <small class="text-muted">Badlands</small>
+                    </td>
+                    <td></td>
+                    <td>202507202509</td>
+                    <td class="text-right">£0.03</td>
+                    <td class="text-right">£0.01</td>
+                    <td>
+                        <a href="http://localhost:8000/prs/prs/17837/" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="5" class="text-right">Total:</th>
+                    <th class="text-right">£23090.16</th>
+                    <th colspan="2"></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            
+
+            <li class="page-item disabled">
+                <span class="page-link">
+                    Page 1 of 358
+                </span>
+            </li>
+
+            
+            <li class="page-item">
+                <a class="page-link" href="http://localhost:8000/prs/prs/?page=2">
+                    Next <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="http://localhost:8000/prs/prs/?page=358">
+                    Last <i class="bi bi-chevron-double-right"></i>
+                </a>
+            </li>
+            
+        </ul>
+    </nav>
+    
+</div>
+
+    </div>
+
+</body></html>

@@ -1,0 +1,3772 @@
+<!DOCTYPE html>
+<!-- saved from url=(0074)http://localhost:8000/prs/payments/high-value/?composer=Hogston&status=all -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRS Data Management</title>
+    <!-- Load static files -->
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .logo {
+            height: 400px;  /* Adjust as needed */
+            margin-right: 100px;
+        }
+        .nav-link {
+            margin-right: 15px;
+        }
+        .content {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .pagination {
+            margin-top: 20px;
+        }
+        .stats {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation with Logo -->
+    <nav>
+       <p>
+        <a href="http://localhost:8000/prs/">Home</a> -
+        <a href="http://localhost:8000/prs/artists/">Artists</a> -
+        <a href="http://localhost:8000/prs/tracks/">Tracks</a> -
+        <a href="http://localhost:8000/prs/prs/">PRS Data</a> -
+        <a href="http://localhost:8000/prs/payments/">Payment Schedule</a> -
+        <a href="http://localhost:8000/prs/payments/high-value/">High Value Payments (£100+)</a>
+    </p>
+    </nav>
+
+    <!-- Main content block for child templates -->
+    <div class="content">
+        
+<div class="container">
+    <h1>High Value Composers (≥£100.0)</h1>
+
+    <!-- Back to List Link -->
+    <div class="mb-3">
+        <a href="http://localhost:8000/prs/prs/" class="btn btn-secondary">
+            ← Back to PRS Data List
+        </a>
+        <a href="http://localhost:8000/prs/payments/" class="btn btn-outline-secondary ms-2">
+            View All Payments
+        </a>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Filters</h5>
+            <div class="row">
+                <!-- Payment Status Filter -->
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <div class="btn-group" role="group">
+                        <a href="http://localhost:8000/prs/payments/high-value/?status=all&amp;composer=Hogston" class="btn btn-primary">
+                            All (£136.06)
+                        </a>
+                        <a href="http://localhost:8000/prs/payments/high-value/?status=paid&amp;composer=Hogston" class="btn btn-outline-primary">
+                            Paid (£0.00)
+                        </a>
+                        <a href="http://localhost:8000/prs/payments/high-value/?status=unpaid&amp;composer=Hogston" class="btn btn-outline-primary">
+                            Unpaid (£136.06)
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Composer Filter -->
+<div class="col-md-6">
+    <form method="get" class="form-inline">
+        <div class="input-group w-100">
+            <select name="composer" class="form-select" onchange="this.form.submit()">
+                <option value="">All Composers</option>
+                
+                <option value="Hogston" selected="">
+                    Hogston
+                </option>
+                
+            </select>
+            <input type="hidden" name="status" value="all">
+        </div>
+    </form>
+</div>
+
+                <!-- SINGLE Composer Summary Table -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h2>High Value Composer Summary (≥£100.00)</h2>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Composer</th>
+                        <th class="text-right">Total Royalty</th>
+                        <th class="text-right">Paid</th>
+                        <th class="text-right">Unpaid</th>
+                        <th class="text-right">Songs</th>
+                        <!-- REMOVED: % of Total column -->
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>
+                            <strong>Hogston</strong>
+                        </td>
+                        <td class="text-right">£136.06</td>
+                        <td class="text-right">£0.00</td>
+                        <td class="text-right">£136.06</td>
+                        <td class="text-right">6</td>
+                        <!-- REMOVED: % of Total cell -->
+                    </tr>
+                    
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total</th>
+                        <th class="text-right">£136.06</th>
+                        <th class="text-right">£0.00</th>
+                        <th class="text-right">£136.06</th>
+                        <th class="text-right">6</th>
+                        <!-- REMOVED: % of Total footer cell -->
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+    <!-- Detailed Payment Breakdown -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2>
+                High Value Detailed Payment Breakdown (≥£100.00)
+                
+                    for Hogston
+                
+            </h2>
+        </div>
+        <div class="card-body">
+            <form method="post" action="http://localhost:8000/prs/payments/mark-paid/">
+                <input type="hidden" name="csrfmiddlewaretoken" value="nNvAkAoZIQi6GP2GTT2QplrJpTawHZO5HzQf7WvQksUekq1Lby7JeSQ3t2BbFjsl">
+                <input type="hidden" name="composer" value="Hogston">
+                <input type="hidden" name="status" value="all">
+
+                <!-- Mark as Paid Button and Select All at the top -->
+                <div class="mb-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        
+                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" class="ms-3">
+                        <label for="selectAll" class="mb-0">Select All</label>
+                    </div>
+                    <div>
+                        <span id="selectedCount">0 payments selected for Hogston</span>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="tableSelectAll" onchange="toggleTableSelectAll(this)">
+                                </th>
+                                <th>Composer</th>
+                                <th>Song Code</th>
+                                <th>Song Title</th>
+                                <th>Source Name</th>
+                                <th>Main Income Type</th>
+                                <th>Period</th>
+                                <th class="text-right">Royalty Payable</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="11" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6211237</td>
+                                <td>Traveler North</td>
+                                <td>AdRev</td>
+                                <td>Digital/New Media</td>
+                                <td>202602202602</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="43" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210695</td>
+                                <td>Nature Trails</td>
+                                <td>AdRev</td>
+                                <td>Digital/New Media</td>
+                                <td>202602202602</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="168" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Mediacube</td>
+                                <td>Performance</td>
+                                <td>202507202512</td>
+                                <td class="text-right">£4.70</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="192" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>Konga                               -for</td>
+                                <td>Sync.</td>
+                                <td>202507202512</td>
+                                <td class="text-right">£1.66</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="210" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>Konga                               -for</td>
+                                <td>Sync.</td>
+                                <td>202507202512</td>
+                                <td class="text-right">£0.08</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="822" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM France</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£3.48</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="838" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM France</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£0.03</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="911" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM France</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="1068" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM France</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="1668" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6211237</td>
+                                <td>Traveler North</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="1749" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210695</td>
+                                <td>Nature Trails</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="1803" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.07</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="1809" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210405</td>
+                                <td>High On Hope</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="1865" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="1921" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210116</td>
+                                <td>Dreamers Rise</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="1976" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.03</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="2082" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.80</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="2145" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.40</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="2556" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Germany</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£1.64</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="2614" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Germany</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£2.97</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="2657" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Germany</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£4.64</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="2778" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Germany</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="2790" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Germany</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£2.57</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="3603" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>THIRD PARTY Synchronization Rights</td>
+                                <td>Sync.</td>
+                                <td>202501202601</td>
+                                <td class="text-right">£0.27</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="3708" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6211237</td>
+                                <td>Traveler North</td>
+                                <td>THIRD PARTY Synchronization Rights</td>
+                                <td>Sync.</td>
+                                <td>202501202601</td>
+                                <td class="text-right">£0.27</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="3720" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210695</td>
+                                <td>Nature Trails</td>
+                                <td>THIRD PARTY Synchronization Rights</td>
+                                <td>Sync.</td>
+                                <td>202501202601</td>
+                                <td class="text-right">£0.27</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="3834" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>THIRD PARTY Synchronization Rights</td>
+                                <td>Sync.</td>
+                                <td>202501202601</td>
+                                <td class="text-right">£0.27</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="3885" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210116</td>
+                                <td>Dreamers Rise</td>
+                                <td>THIRD PARTY Synchronization Rights</td>
+                                <td>Sync.</td>
+                                <td>202501202601</td>
+                                <td class="text-right">£0.27</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="4121" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210405</td>
+                                <td>High On Hope</td>
+                                <td>THIRD PARTY Synchronization Rights</td>
+                                <td>Sync.</td>
+                                <td>202501202601</td>
+                                <td class="text-right">£0.27</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="4229" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="4240" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202512</td>
+                                <td class="text-right">£0.45</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="4467" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>Harbor Corp/Attention Music</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="4546" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Flipper Srl Music</td>
+                                <td>Performance</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£3.33</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="4564" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Harbor Corp/Attention Music</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.08</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="4596" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210695</td>
+                                <td>Nature Trails</td>
+                                <td>BMG RM France</td>
+                                <td>Performance</td>
+                                <td>202512202512</td>
+                                <td class="text-right">£-0.02</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="4609" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6211237</td>
+                                <td>Traveler North</td>
+                                <td>BMG RM Germany</td>
+                                <td>Sync.</td>
+                                <td>202401202412</td>
+                                <td class="text-right">£2.71</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="5057" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202407202409</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="5065" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202407202409</td>
+                                <td class="text-right">£1.93</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="5091" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202407202409</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="5120" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202410202412</td>
+                                <td class="text-right">£0.47</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="5125" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202407202409</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="5142" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202407202409</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="5154" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202410202412</td>
+                                <td class="text-right">£0.71</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="5201" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202410202412</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="5228" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202410202412</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="5278" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202410202412</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="5303" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202407202409</td>
+                                <td class="text-right">£1.29</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="5700" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Flipper Srl Music</td>
+                                <td>Sync.</td>
+                                <td>202407202412</td>
+                                <td class="text-right">£4.48</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="5756" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>Flipper Srl Music</td>
+                                <td>Sync.</td>
+                                <td>202407202412</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="5924" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>MCPS</td>
+                                <td>Digital/New Media</td>
+                                <td>202401202509</td>
+                                <td class="text-right">£2.53</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="5999" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Brazil</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="6027" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Brazil</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.08</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="6359" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM France</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£1.75</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="6428" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM France</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="6501" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM France</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£0.02</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7009" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.23</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7017" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210405</td>
+                                <td>High On Hope</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Performance</td>
+                                <td>202603202603</td>
+                                <td class="text-right">£0.95</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7035" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7040" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Performance</td>
+                                <td>202603202603</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7050" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Performance</td>
+                                <td>202603202603</td>
+                                <td class="text-right">£2.34</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7227" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210695</td>
+                                <td>Nature Trails</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Performance</td>
+                                <td>202603202603</td>
+                                <td class="text-right">£4.60</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7250" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7393" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Harbor Corp/Attention Music</td>
+                                <td>Digital/New Media</td>
+                                <td>202510202512</td>
+                                <td class="text-right">£0.03</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7410" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Harbor Corp/Attention Music</td>
+                                <td>Digital/New Media</td>
+                                <td>202510202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7452" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210695</td>
+                                <td>Nature Trails</td>
+                                <td>POINT Culture Co., Ltd</td>
+                                <td>Sync.</td>
+                                <td>202303202303</td>
+                                <td class="text-right">£2.40</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7507" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>Mediacube</td>
+                                <td>Sync.</td>
+                                <td>202309202309</td>
+                                <td class="text-right">£2.06</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7522" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210116</td>
+                                <td>Dreamers Rise</td>
+                                <td>Mediacube</td>
+                                <td>Sync.</td>
+                                <td>202309202309</td>
+                                <td class="text-right">£2.06</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7592" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6211237</td>
+                                <td>Traveler North</td>
+                                <td>Mediacube</td>
+                                <td>Sync.</td>
+                                <td>202309202309</td>
+                                <td class="text-right">£2.06</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7597" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210405</td>
+                                <td>High On Hope</td>
+                                <td>Mediacube</td>
+                                <td>Sync.</td>
+                                <td>202309202309</td>
+                                <td class="text-right">£2.06</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7614" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210695</td>
+                                <td>Nature Trails</td>
+                                <td>Mediacube</td>
+                                <td>Sync.</td>
+                                <td>202309202309</td>
+                                <td class="text-right">£2.06</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7637" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Mediacube</td>
+                                <td>Sync.</td>
+                                <td>202309202309</td>
+                                <td class="text-right">£2.06</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7695" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202209202209</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7703" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202302202302</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7711" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202211202211</td>
+                                <td class="text-right">£0.02</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7743" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202210202210</td>
+                                <td class="text-right">£0.05</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7757" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202211202211</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7763" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202303202303</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7803" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202303202303</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7819" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202209202209</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="7820" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202210202210</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="8033" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202303202303</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="8038" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202307202307</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="8363" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="8371" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="8372" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="8497" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.16</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="8569" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="8954" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6211237</td>
+                                <td>Traveler North</td>
+                                <td>AdRev</td>
+                                <td>Digital/New Media</td>
+                                <td>202602202602</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="8986" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210695</td>
+                                <td>Nature Trails</td>
+                                <td>AdRev</td>
+                                <td>Digital/New Media</td>
+                                <td>202602202602</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="9111" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Mediacube</td>
+                                <td>Performance</td>
+                                <td>202507202512</td>
+                                <td class="text-right">£4.70</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="9135" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>Konga                               -for</td>
+                                <td>Sync.</td>
+                                <td>202507202512</td>
+                                <td class="text-right">£1.66</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="9153" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>Konga                               -for</td>
+                                <td>Sync.</td>
+                                <td>202507202512</td>
+                                <td class="text-right">£0.08</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="9765" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM France</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£3.48</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="9781" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM France</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£0.03</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="9854" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM France</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="10011" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM France</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="10611" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6211237</td>
+                                <td>Traveler North</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="10692" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210695</td>
+                                <td>Nature Trails</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="10746" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.07</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="10752" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210405</td>
+                                <td>High On Hope</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="10808" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="10864" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210116</td>
+                                <td>Dreamers Rise</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="10919" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.03</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="11025" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.80</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="11088" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM US LLC</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.40</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="11499" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Germany</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£1.64</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="11557" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Germany</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£2.97</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="11600" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Germany</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£4.64</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="11721" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Germany</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="11733" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Germany</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£2.57</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="12546" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>THIRD PARTY Synchronization Rights</td>
+                                <td>Sync.</td>
+                                <td>202501202601</td>
+                                <td class="text-right">£0.27</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="12651" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6211237</td>
+                                <td>Traveler North</td>
+                                <td>THIRD PARTY Synchronization Rights</td>
+                                <td>Sync.</td>
+                                <td>202501202601</td>
+                                <td class="text-right">£0.27</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="12663" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210695</td>
+                                <td>Nature Trails</td>
+                                <td>THIRD PARTY Synchronization Rights</td>
+                                <td>Sync.</td>
+                                <td>202501202601</td>
+                                <td class="text-right">£0.27</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="12777" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>THIRD PARTY Synchronization Rights</td>
+                                <td>Sync.</td>
+                                <td>202501202601</td>
+                                <td class="text-right">£0.27</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="12828" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210116</td>
+                                <td>Dreamers Rise</td>
+                                <td>THIRD PARTY Synchronization Rights</td>
+                                <td>Sync.</td>
+                                <td>202501202601</td>
+                                <td class="text-right">£0.27</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="13064" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210405</td>
+                                <td>High On Hope</td>
+                                <td>THIRD PARTY Synchronization Rights</td>
+                                <td>Sync.</td>
+                                <td>202501202601</td>
+                                <td class="text-right">£0.27</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="13172" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="13183" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202512</td>
+                                <td class="text-right">£0.45</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="13410" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>Harbor Corp/Attention Music</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="13489" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Flipper Srl Music</td>
+                                <td>Performance</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£3.33</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="13507" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Harbor Corp/Attention Music</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.08</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="13539" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210695</td>
+                                <td>Nature Trails</td>
+                                <td>BMG RM France</td>
+                                <td>Performance</td>
+                                <td>202512202512</td>
+                                <td class="text-right">£-0.02</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="13552" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6211237</td>
+                                <td>Traveler North</td>
+                                <td>BMG RM Germany</td>
+                                <td>Sync.</td>
+                                <td>202401202412</td>
+                                <td class="text-right">£2.71</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14000" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202407202409</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14008" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202407202409</td>
+                                <td class="text-right">£1.93</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14034" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202407202409</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14063" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202410202412</td>
+                                <td class="text-right">£0.47</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14068" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202407202409</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14085" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202407202409</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14097" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202410202412</td>
+                                <td class="text-right">£0.71</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14144" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202410202412</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14171" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202410202412</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14221" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202410202412</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14246" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Mexico</td>
+                                <td>Digital/New Media</td>
+                                <td>202407202409</td>
+                                <td class="text-right">£1.29</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14643" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Flipper Srl Music</td>
+                                <td>Sync.</td>
+                                <td>202407202412</td>
+                                <td class="text-right">£4.48</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14699" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>Flipper Srl Music</td>
+                                <td>Sync.</td>
+                                <td>202407202412</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14867" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>MCPS</td>
+                                <td>Digital/New Media</td>
+                                <td>202401202509</td>
+                                <td class="text-right">£2.53</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14942" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Brazil</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="14970" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Brazil</td>
+                                <td>Digital/New Media</td>
+                                <td>202507202509</td>
+                                <td class="text-right">£0.08</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="15302" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM France</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£1.75</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="15371" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM France</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="15444" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM France</td>
+                                <td>Digital/New Media</td>
+                                <td>202504202506</td>
+                                <td class="text-right">£0.02</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="15952" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.23</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="15960" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210405</td>
+                                <td>High On Hope</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Performance</td>
+                                <td>202603202603</td>
+                                <td class="text-right">£0.95</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="15978" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="15983" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Performance</td>
+                                <td>202603202603</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="15993" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Performance</td>
+                                <td>202603202603</td>
+                                <td class="text-right">£2.34</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16170" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210695</td>
+                                <td>Nature Trails</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Performance</td>
+                                <td>202603202603</td>
+                                <td class="text-right">£4.60</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16193" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16336" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Harbor Corp/Attention Music</td>
+                                <td>Digital/New Media</td>
+                                <td>202510202512</td>
+                                <td class="text-right">£0.03</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16353" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Harbor Corp/Attention Music</td>
+                                <td>Digital/New Media</td>
+                                <td>202510202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16395" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210695</td>
+                                <td>Nature Trails</td>
+                                <td>POINT Culture Co., Ltd</td>
+                                <td>Sync.</td>
+                                <td>202303202303</td>
+                                <td class="text-right">£2.40</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16450" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>Mediacube</td>
+                                <td>Sync.</td>
+                                <td>202309202309</td>
+                                <td class="text-right">£2.06</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16465" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210116</td>
+                                <td>Dreamers Rise</td>
+                                <td>Mediacube</td>
+                                <td>Sync.</td>
+                                <td>202309202309</td>
+                                <td class="text-right">£2.06</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16535" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6211237</td>
+                                <td>Traveler North</td>
+                                <td>Mediacube</td>
+                                <td>Sync.</td>
+                                <td>202309202309</td>
+                                <td class="text-right">£2.06</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16540" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210405</td>
+                                <td>High On Hope</td>
+                                <td>Mediacube</td>
+                                <td>Sync.</td>
+                                <td>202309202309</td>
+                                <td class="text-right">£2.06</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16557" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210695</td>
+                                <td>Nature Trails</td>
+                                <td>Mediacube</td>
+                                <td>Sync.</td>
+                                <td>202309202309</td>
+                                <td class="text-right">£2.06</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16580" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Mediacube</td>
+                                <td>Sync.</td>
+                                <td>202309202309</td>
+                                <td class="text-right">£2.06</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16638" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202209202209</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16646" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202302202302</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16654" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202211202211</td>
+                                <td class="text-right">£0.02</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16686" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202210202210</td>
+                                <td class="text-right">£0.05</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16700" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202211202211</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16706" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202303202303</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16746" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202303202303</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16762" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202209202209</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16763" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202210202210</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16976" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202303202303</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="16981" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>Dashgo Inc.</td>
+                                <td>Digital/New Media</td>
+                                <td>202307202307</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="17306" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="17314" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="17315" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="17440" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6209939</td>
+                                <td>Building Sorrow</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.16</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    
+                                    <input type="checkbox" name="payment_ids" value="17512" class="payment-checkbox">
+                                    
+                                </td>
+                                <td>Hogston</td>
+                                <td>6210676</td>
+                                <td>Mountain Mist</td>
+                                <td>BMG RM Benelux</td>
+                                <td>Digital/New Media</td>
+                                <td>202501202512</td>
+                                <td class="text-right">£0.01</td>
+                                <td>
+                                    
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    
+                                </td>
+                            </tr>
+                            
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="8" class="text-right">Total:</th>
+                                <th class="text-right">£136.06</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript for checkboxes and selected count -->
+    <script>
+    function toggleSelectAll(source) {
+        const checkboxes = document.querySelectorAll('.payment-checkbox');
+        for (let i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = source.checked;
+        }
+        updateSelectedCount();
+    }
+
+    function toggleTableSelectAll(source) {
+        const checkboxes = document.querySelectorAll('.payment-checkbox');
+        for (let i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = source.checked;
+        }
+        updateSelectedCount();
+    }
+
+    function selectAllForComposer() {
+        const checkboxes = document.querySelectorAll('.payment-checkbox:not(:checked)');
+        for (let i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = true;
+        }
+        updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+        const checkboxes = document.querySelectorAll('.payment-checkbox:checked');
+        const count = checkboxes.length;
+        const composer = 'Hogston';
+        document.getElementById('selectedCount').textContent =
+            `${count} payment${count !== 1 ? 's' : ''} selected for ${composer}`;
+    }
+
+    // Initialize selected count and event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add event listeners to all payment checkboxes
+        document.querySelectorAll('.payment-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedCount);
+        });
+
+        // Add event listener to select all checkbox
+        const selectAllCheckbox = document.getElementById('selectAll');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                toggleSelectAll(this);
+            });
+        }
+
+        
+        // Add event listener to table select all checkbox
+        const tableSelectAllCheckbox = document.getElementById('tableSelectAll');
+        if (tableSelectAllCheckbox) {
+            tableSelectAllCheckbox.addEventListener('change', function() {
+                toggleTableSelectAll(this);
+            });
+        }
+
+    // Initialize count
+    updateSelectedCount();
+});
+
+</script>
+
+    </div>
+
+</div></div></div></div></body></html>
