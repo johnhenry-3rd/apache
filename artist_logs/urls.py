@@ -9,4 +9,5 @@ urlpatterns = [
     path('table/', views.data_table, name='data_table'),
     path('charts/', views.charts, name='charts'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('prs-admin/', views.prs_admin, name='prs_admin')
 ]

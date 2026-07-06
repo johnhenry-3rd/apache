@@ -1,19 +1,22 @@
 {% extends 'artist_logs/base.html' %}
 
-{% load static %}
-
 {% block content %}
 <div class="front-page-container">
-    <!-- Banner Section (only on front page) -->
+    <!-- Custom Banner Section -->
     <div class="banner-container">
-        <img src="{% static 'artist_logs/images/banner1.png' %}" alt="Apache Music - music not muzak" class="apache-banner">
+        <div class="custom-banner">
+            <div class="banner-content">
+                <h1 class="banner-title">Apache Music</h1>
+                <p class="banner-subtitle">music not muzak</p>
+            </div>
+        </div>
     </div>
 
     <!-- Main Content with Links -->
     <div class="front-page-content">
         <div class="container">
             <div class="row justify-content-center">
-                <div class="col-md-8 text-center">
+                <div class="col-md-10 text-center">
                     <h1 class="mb-4">Welcome to Apache Music Artist Logs</h1>
                     <p class="lead mb-5">
                         Manage and analyze your music royalty data with our comprehensive tools.
@@ -21,6 +24,7 @@
 
                     <!-- Navigation Cards -->
                     <div class="row g-4">
+                        <!-- Data Table Card -->
                         <div class="col-md-4">
                             <div class="card h-100 front-page-card">
                                 <div class="card-body text-center">
@@ -32,17 +36,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-4">
-                            <div class="card h-100 front-page-card">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-chart-bar fa-3x mb-3" style="color: var(--apache-gold);"></i>
-                                    <h3 class="card-title">Charts</h3>
-                                    <p class="card-text">Visualize your royalty data with interactive charts.</p>
-                                    <a href="{% url 'artist_logs:charts' %}" class="btn btn-primary">Go to Charts</a>
-                                </div>
-                            </div>
-                        </div>
-
+                        <!-- Dashboard Card -->
                         <div class="col-md-4">
                             <div class="card h-100 front-page-card">
                                 <div class="card-body text-center">
@@ -50,6 +44,18 @@
                                     <h3 class="card-title">Dashboard</h3>
                                     <p class="card-text">Get an overview of your music data and statistics.</p>
                                     <a href="{% url 'artist_logs:dashboard' %}" class="btn btn-primary">Go to Dashboard</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PRS Admin Card -->
+                        <div class="col-md-4">
+                            <div class="card h-100 front-page-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-file-import fa-3x mb-3" style="color: var(--apache-gold);"></i>
+                                    <h3 class="card-title">PRS Admin</h3>
+                                    <p class="card-text">Upload and manage your PRS CSV data files.</p>
+                                    <a href="{% url 'artist_logs:prs_admin' %}" class="btn btn-primary">Go to PRS Admin</a>
                                 </div>
                             </div>
                         </div>
@@ -65,26 +71,83 @@
 <style>
     /* Front page specific styles */
     .front-page-container {
-        min-height: calc(100vh - 120px);
+        min-height: calc(100vh - 80px);
         display: flex;
         flex-direction: column;
     }
 
+    /* Custom banner styling to match Apache Music color scheme */
     .banner-container {
         width: 100%;
-        background-color: var(--apache-dark);
-        padding: 20px 0;
-        border-bottom: 1px solid var(--apache-gray);
+        background-color: #1a1a1a;  /* Apache dark background */
+        padding: 30px 0;
+        border-bottom: 2px solid #c5a47e;  /* Apache gold border */
+        position: relative;
+        overflow: hidden;
     }
 
-    .apache-banner {
+    .custom-banner {
         width: 100%;
         max-width: 1200px;
-        height: auto;
         margin: 0 auto;
-        display: block;
+        padding: 40px 0;
+        text-align: center;
+        position: relative;
+        background: linear-gradient(
+            135deg,
+            rgba(197, 164, 126, 0.1) 0%,
+            rgba(197, 164, 126, 0.05) 50%,
+            rgba(197, 164, 126, 0.1) 100%
+        );
     }
 
+    .banner-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .banner-title {
+        font-size: 3.5rem;
+        font-weight: 700;
+        color: #c5a47e;  /* Apache gold text */
+        margin: 0;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        letter-spacing: 1px;
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    .banner-subtitle {
+        font-size: 1.8rem;
+        color: rgba(255, 255, 255, 0.9);  /* Slightly transparent white */
+        margin: 10px 0 0;
+        font-style: italic;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    /* Decorative gold shine effect */
+    .custom-banner::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 200%;
+        height: 100%;
+        background: linear-gradient(
+            to right,
+            transparent 0%,
+            rgba(197, 164, 126, 0.1) 50%,
+            transparent 100%
+        );
+        animation: shine 8s infinite;
+    }
+
+    @keyframes shine {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+
+    /* Front page content */
     .front-page-content {
         flex: 1;
         padding: 40px 0;
@@ -92,19 +155,20 @@
 
     .front-page-card {
         background-color: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--apache-gray);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
-        color: var(--apache-light);
+        color: #f8f8f8;
+        height: 100%;
     }
 
     .front-page-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        border-color: var(--apache-gold);
+        border-color: #c5a47e;  /* Apache gold on hover */
     }
 
     .front-page-card .card-title {
-        color: var(--apache-gold);
+        color: #c5a47e;  /* Apache gold */
         margin-bottom: 15px;
     }
 
@@ -115,16 +179,47 @@
 
     .front-page-card .btn-primary {
         margin-top: auto;
+        background-color: #c5a47e;  /* Apache gold */
+        border-color: #c5a47e;
+        color: #1a1a1a;  /* Dark text on gold button */
+    }
+
+    .front-page-card .btn-primary:hover {
+        background-color: #d4b896;  /* Lighter gold on hover */
+        border-color: #d4b896;
     }
 
     h1 {
-        color: var(--apache-light);
+        color: #f8f8f8;
         font-weight: 700;
     }
 
     .lead {
         color: rgba(255, 255, 255, 0.8);
         font-size: 1.2rem;
+    }
+
+    /* Make cards equal height */
+    .row.g-4 {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .col-md-4 {
+        display: flex;
+        flex-direction: column;
+    }
+
+    @media (max-width: 768px) {
+        .banner-title {
+            font-size: 2.5rem;
+        }
+        .banner-subtitle {
+            font-size: 1.3rem;
+        }
+        .front-page-card {
+            margin-bottom: 20px;
+        }
     }
 </style>
 {% endblock %}

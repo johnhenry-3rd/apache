@@ -310,3 +310,74 @@ def dashboard(request):
 def front_page(request):
     """Render the front page with Apache Music banner and navigation links."""
     return render(request, 'artist_logs/front_page.html')
+
+def prs_admin(request):
+    """View for uploading and managing PRS data."""
+    if request.method == 'POST' and request.FILES.get('csv_file'):
+        csv_file = request.FILES['csv_file']
+
+        if not csv_file.name.endswith('.csv'):
+            messages.error(request, "Please upload a CSV file.")
+            return redirect('artist_logs:prs_admin')
+
+        try:
+            csv_data = TextIOWrapper(csv_file.file, encoding='utf-8-sig')
+            reader = csv.DictReader(csv_data)
+            fieldnames = reader.fieldnames
+
+            required_fields = ['Song_Title', 'Royalty_Payable']
+            if not all(field in fieldnames for field in required_fields):
+                messages.error(request, f"CSV file is missing required fields: {', '.join(required_fields)}")
+                return redirect('artist_logs:prs_admin')
+
+            csv_file.seek(0)
+            csv_data = TextIOWrapper(csv_file.file, encoding='utf-8-sig')
+            reader = csv.DictReader(csv_data)
+
+            with transaction.atomic():
+                for row in reader:
+                    prs_data, created = Prs_data.objects.get_or_create(
+                        Song_Title=row.get('Song_Title', '').strip(),
+                        defaults={
+                            'Royalty_Payable': float(row.get('Royalty_Payable', 0)) if row.get('Royalty_Payable') else 0.0,
+                            'Composers': row.get('Composers', ''),
+                        }
+                    )
+
+                    if not created:
+                        prs_data.Royalty_Payable = float(row.get('Royalty_Payable', 0)) if row.get('Royalty_Payable') else 0.0
+                        prs_data.Composers = row.get('Composers', prs_data.Composers)
+
+                    if 'Artist' in fieldnames and row.get('Artist'):
+                        artist_name = row['Artist'].strip()
+                        if artist_name:
+                            artist, _ = Artist.objects.get_or_create(
+                                name=artist_name,
+                                defaults={
+                                    'first_name': artist_name.split()[-1] if artist_name.split() else "Unknown",
+                                    'last_name': artist_name.split()[0] if len(artist_name.split()) > 1 else "Unknown"
+                                }
+                            )
+                            prs_data.composers.add(artist)
+
+                    for field in fieldnames:
+                        if hasattr(prs_data, field) and field not in ['Song_Title', 'Royalty_Payable', 'Composers', 'Artist']:
+                            setattr(prs_data, field, row.get(field, ''))
+
+                    prs_data.save()
+
+            messages.success(request, f"Successfully imported data from the CSV file.")
+            return redirect('artist_logs:prs_admin')
+
+        except Exception as e:
+            messages.error(request, f"An error occurred while importing the CSV file: {str(e)}")
+            return redirect('artist_logs:prs_admin')
+
+    prs_count = Prs_data.objects.count()
+    artist_count = Artist.objects.count()
+
+    return render(request, 'artist_logs/prs_admin.html', {
+        'prs_count': prs_count,
+        'artist_count': artist_count,
+    })
+
