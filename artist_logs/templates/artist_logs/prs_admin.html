@@ -2,30 +2,27 @@
 
 {% block extra_css %}
 <style>
+    /* --- Existing Styles --- */
     .prs-admin-container {
         padding: 20px;
         color: var(--apache-light);
     }
-
     .prs-admin-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 30px;
     }
-
     .prs-admin-title {
         font-size: 1.8rem;
         color: var(--apache-gold);
     }
-
     .prs-admin-stats {
         display: flex;
         gap: 20px;
         margin-bottom: 30px;
         flex-wrap: wrap;
     }
-
     .stat-card {
         background-color: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -34,21 +31,18 @@
         min-width: 200px;
         flex: 1;
     }
-
     .stat-card h3 {
         color: rgba(255, 255, 255, 0.7);
         font-size: 0.9rem;
         margin: 0 0 10px;
         text-transform: uppercase;
     }
-
     .stat-card p {
         color: var(--apache-gold);
         font-size: 2rem;
         margin: 0;
         font-weight: 700;
     }
-
     .upload-section {
         background-color: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -56,30 +50,25 @@
         padding: 30px;
         margin-bottom: 30px;
     }
-
     .upload-title {
         color: var(--apache-gold);
         margin-bottom: 15px;
         font-size: 1.2rem;
     }
-
     .upload-instructions {
         color: rgba(255, 255, 255, 0.7);
         margin-bottom: 20px;
     }
-
     .file-upload-form {
         display: flex;
         flex-direction: column;
         gap: 15px;
     }
-
     .file-input-container {
         display: flex;
         align-items: center;
         gap: 10px;
     }
-
     .file-input-label {
         background-color: var(--apache-gold);
         color: var(--apache-dark);
@@ -88,20 +77,16 @@
         cursor: pointer;
         font-weight: 600;
     }
-
     .file-input-label:hover {
         background-color: var(--apache-gold-light);
     }
-
     #csv_file {
         display: none;
     }
-
     .file-name {
         color: rgba(255, 255, 255, 0.8);
         font-style: italic;
     }
-
     .upload-button {
         background-color: var(--apache-gold);
         color: var(--apache-dark);
@@ -112,79 +97,180 @@
         font-weight: 600;
         align-self: flex-start;
     }
-
     .upload-button:hover {
         background-color: var(--apache-gold-light);
     }
 
-    .recent-imports {
-        margin-top: 30px;
+    /* --- Payment Tracking Styles --- */
+    .payment-section {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 30px;
+        margin-bottom: 30px;
     }
-
-    .recent-imports-title {
+    .payment-title {
         color: var(--apache-gold);
         margin-bottom: 15px;
         font-size: 1.2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .payment-form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        max-width: 500px;
+    }
+    .payment-button {
+        background-color: var(--apache-gold);
+        color: var(--apache-dark);
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        align-self: flex-start;
+    }
+    .payment-button:hover {
+        background-color: var(--apache-gold-light);
+    }
+    .payment-status {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    .status-paid {
+        background-color: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+    }
+    .status-unpaid {
+        background-color: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+    }
+    .status-draft {
+        background-color: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+    }
+    .status-finalized {
+        background-color: rgba(0, 123, 255, 0.2);
+        color: #007bff;
+    }
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+    }
+    .action-button {
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        border: none;
+    }
+    .mark-paid-button {
+        background-color: #28a745;
+        color: white;
+    }
+    .mark-unpaid-button {
+        background-color: #dc3545;
+        color: white;
+    }
+    .view-all-link {
+        color: var(--apache-gold);
+        text-decoration: none;
+        margin-top: 10px;
+        display: inline-block;
+    }
+    .view-all-link:hover {
+        text-decoration: underline;
     }
 
+    /* Table Styles */
     .imports-table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 15px;
+        color: var(--apache-light);
     }
-
-    .imports-table th {
-        background-color: rgba(255, 255, 255, 0.05);
-        color: var(--apache-gold);
-        padding: 12px;
+    .imports-table th,
+    .imports-table td {
+        padding: 12px 15px;
         text-align: left;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
-
-    .imports-table td {
-        padding: 10px 12px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    .imports-table th {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: var(--apache-gold);
+        font-weight: 600;
     }
-
     .imports-table tr:hover {
         background-color: rgba(255, 255, 255, 0.05);
     }
 
+    /* Status Badges */
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    .status-success {
+        background-color: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+    }
+    .status-failed {
+        background-color: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+    }
+
+    /* Messages */
     .messages {
         margin-bottom: 20px;
     }
-
     .message {
-        padding: 12px 15px;
-        border-radius: 4px;
+        padding: 10px 15px;
         margin-bottom: 10px;
+        border-radius: 4px;
+        font-size: 0.9rem;
     }
-
+    .message-info {
+        background-color: rgba(0, 123, 255, 0.2);
+        color: #007bff;
+        border: 1px solid #007bff;
+    }
     .message-success {
-        background-color: rgba(0, 255, 0, 0.1);
-        border-left: 4px solid #28a745;
+        background-color: rgba(40, 167, 69, 0.2);
         color: #28a745;
+        border: 1px solid #28a745;
     }
-
+    .message-warning {
+        background-color: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+        border: 1px solid #ffc107;
+    }
     .message-error {
-        background-color: rgba(255, 0, 0, 0.1);
-        border-left: 4px solid #dc3545;
+        background-color: rgba(220, 53, 69, 0.2);
         color: #dc3545;
+        border: 1px solid #dc3545;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="prs-admin-container">
+    <!-- Header -->
     <div class="prs-admin-header">
         <h1 class="prs-admin-title">PRS Admin</h1>
+        <a href="{% url 'artist_logs:data_table' %}" class="btn btn-outline-light">View Data Table</a>
     </div>
 
     <!-- Messages -->
     {% if messages %}
     <div class="messages">
         {% for message in messages %}
-        <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+        <div class="message {% if message.tags %}{{ message.tags }}{% else %}message-info{% endif %}">
             {{ message }}
         </div>
         {% endfor %}
@@ -202,23 +288,29 @@
             <p>{{ artist_count }}</p>
         </div>
         <div class="stat-card">
-            <h3>Clients</h3>
-            <p>{{ client_count }}</p>
+            <h3>Songs</h3>
+            <p>{{ song_count }}</p>
         </div>
         <div class="stat-card">
-            <h3>Payees</h3>
-            <p>{{ payee_count }}</p>
+            <h3>Sources</h3>
+            <p>{{ source_count }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Income Types</h3>
+            <p>{{ income_type_count }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Payment Statements</h3>
+            <p>{{ payment_statement_count }}</p>
         </div>
     </div>
 
-    <!-- Upload Section -->
+    <!-- CSV Upload Section -->
     <div class="upload-section">
         <h2 class="upload-title">Upload PRS CSV File</h2>
         <p class="upload-instructions">
-            Upload a CSV file containing PRS data. The file should include at least the following columns:
-            <strong>Song_Title</strong> and <strong>Royalty_Payable</strong>.
+            Upload a CSV file containing PRS data. Duplicate files will be rejected.
         </p>
-
         <form method="post" enctype="multipart/form-data" class="file-upload-form">
             {% csrf_token %}
             <div class="file-input-container">
@@ -230,26 +322,149 @@
         </form>
     </div>
 
-    <!-- Recent Imports -->
-    {% if recent_imports %}
-    <div class="recent-imports">
-        <h2 class="recent-imports-title">Recently Imported Records</h2>
+    <!-- Payment Statements Section -->
+    <div class="payment-section">
+        <div class="payment-title">
+            <h2>Payment Statements</h2>
+            <a href="{% url 'artist_logs:payment_statement_list' %}" class="view-all-link">
+                View All →
+            </a>
+        </div>
+        <p>Create and manage payment statements to track payments for PRS records.</p>
+
+        <a href="{% url 'artist_logs:create_payment_statement' %}" class="payment-button">
+            <i class="fas fa-plus"></i> Create New Payment Statement
+        </a>
+
+        {% if payment_statements %}
+        <div class="recent-imports" style="margin-top: 30px;">
+            <h3 style="color: var(--apache-gold);">Recent Payment Statements</h3>
+            <table class="imports-table">
+                <thead>
+                    <tr>
+                        <th>Statement Number</th>
+                        <th>Period</th>
+                        <th>Date</th>
+                        <th>Total Amount</th>
+                        <th>Status</th>
+                        <th>Records</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for statement in payment_statements|slice:":5" %}
+                    <tr>
+                        <td>{{ statement.statement_number }}</td>
+                        <td>{{ statement.start_period }} - {{ statement.end_period }}</td>
+                        <td>{{ statement.statement_date }}</td>
+                        <td>£{{ statement.total_amount|floatformat:2 }}</td>
+                        <td>
+                            <span class="status-badge status-{{ statement.status }}">
+                                {{ statement.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ statement.prs_records.count }}</td>
+                        <td>
+                            <a href="{% url 'artist_logs:payment_statement_detail' statement.id %}"
+                               class="action-button" style="background-color: var(--apache-gold); color: var(--apache-dark);">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <a href="{% url 'artist_logs:payment_statement_list' %}" class="view-all-link">
+                View All Payment Statements →
+            </a>
+        </div>
+        {% else %}
+        <div class="alert alert-info" style="color: rgba(255, 255, 255, 0.8); margin-top: 20px;">
+            No payment statements have been created yet.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Upload History Section -->
+    {% if upload_history %}
+    <div class="upload-section">
+        <h2 class="upload-title">Upload History</h2>
         <table class="imports-table">
             <thead>
                 <tr>
-                    <th>Song Title</th>
-                    <th>Artist</th>
-                    <th>Royalty Payable</th>
-                    <th>Imported At</th>
+                    <th>File Name</th>
+                    <th>Uploaded At</th>
+                    <th>Records Imported</th>
+                    <th>Status</th>
+                    <th>Error</th>
                 </tr>
             </thead>
             <tbody>
-                {% for record in recent_imports %}
+                {% for upload in upload_history %}
                 <tr>
-                    <td>{{ record.Song_Title|default:"N/A" }}</td>
-                    <td>{{ record.Artist|default:"N/A" }}</td>
-                    <td>£{{ record.Royalty_Payable|default:0|floatformat:2 }}</td>
-                    <td>{{ record.created_at|date:"Y-m-d H:i"|default:"N/A" }}</td>
+                    <td>{{ upload.file_name }}</td>
+                    <td>{{ upload.uploaded_at|date:"Y-m-d H:i" }}</td>
+                    <td>{{ upload.records_imported }}</td>
+                    <td>
+                        <span class="status-badge {% if upload.status == 'Success' %}status-success{% else %}status-failed{% endif %}">
+                            {{ upload.status }}
+                        </span>
+                    </td>
+                    <td>{{ upload.error_message|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Recently Imported Records Section -->
+    {% if recent_records %}
+    <div class="upload-section">
+        <h2 class="upload-title">Recently Imported Records</h2>
+        <table class="imports-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Artist</th>
+                    <th>Song Title</th>
+                    <th>Royalty Payable</th>
+                    <th>Income Period</th>
+                    <th>Payment Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in recent_records %}
+                <tr>
+                    <td>{{ record.id }}</td>
+                    <td>{{ record.artist|default:"N/A" }}</td>
+                    <td>{{ record.song_title|default:"N/A" }}</td>
+                    <td>£{{ record.royalty_payable|default:0|floatformat:2 }}</td>
+                    <td>{{ record.income_period|default:"N/A" }}</td>
+                    <td>
+                        <span class="payment-status {% if record.is_paid %}status-paid{% else %}status-unpaid{% endif %}">
+                            {% if record.is_paid %}Paid{% else %}Unpaid{% endif %}
+                        </span>
+                    </td>
+                    <td class="action-buttons">
+                        {% if not record.is_paid %}
+                        <form method="post" action="{% url 'artist_logs:mark_as_paid' record.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="payment_statement_id" value="{{ payment_statements.first.id }}">
+                            <button type="submit" class="action-button mark-paid-button">
+                                <i class="fas fa-check"></i> Mark as Paid
+                            </button>
+                        </form>
+                        {% else %}
+                        <form method="post" action="{% url 'artist_logs:mark_as_unpaid' record.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="action-button mark-unpaid-button">
+                                <i class="fas fa-undo"></i> Mark as Unpaid
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

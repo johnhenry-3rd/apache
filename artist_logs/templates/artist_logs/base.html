@@ -1,153 +1,516 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Artist Logs - Apache Music{% endblock %}</title>
+    <title>{% block title %}Apache Music - PRS Admin{% endblock %}</title>
 
-    <!-- Bootstrap 5 CSS -->
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Custom CSS -->
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS Variables for Apache Music Theme -->
     <style>
         :root {
-            --apache-gold: #c5a47e;
-            --apache-gold-light: #d4b896;
             --apache-dark: #1a1a1a;
             --apache-light: #f8f8f8;
-            --apache-gray: rgba(255, 255, 255, 0.1);
+            --apache-gold: #c5a47e;
+            --apache-gold-light: #d4b896;
+            --apache-gold-dark: #a88c5f;
+            --apache-background: #2a2a2a;
+            --apache-surface: rgba(42, 42, 42, 0.8);
+            --apache-border: rgba(255, 255, 255, 0.1);
         }
 
+        /* Base Styles */
         body {
             font-family: 'Montserrat', sans-serif;
             background-color: var(--apache-dark);
             color: var(--apache-light);
             margin: 0;
             padding: 0;
+            min-height: 100vh;
         }
 
-        /* Navbar styling - hidden on front page */
-        .navbar {
+        /* Header Styles */
+        .apache-header {
             background-color: var(--apache-dark);
-            border-bottom: 1px solid var(--apache-gray);
-            padding: 10px 0;
+            border-bottom: 1px solid var(--apache-border);
+            padding: 15px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
 
-        .navbar-brand {
-            color: var(--apache-gold);
-            font-weight: 700;
-            font-size: 1.3rem;
-            text-decoration: none;
-        }
-
-        .navbar-nav {
+        .apache-navbar {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
+            padding: 0 20px;
         }
 
-        .navbar-nav .nav-link {
-            color: var(--apache-dark);
-            background-color: var(--apache-gold);
-            padding: 8px 16px;
-            border-radius: 4px;
-            margin: 0 5px;
-            font-weight: 600;
+        .apache-logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--apache-gold);
             text-decoration: none;
-            display: inline-block;
-            transition: background-color 0.3s;
         }
 
-        .navbar-nav .nav-link:hover {
-            background-color: var(--apache-gold-light);
+        .apache-nav {
+            display: flex;
+            gap: 20px;
         }
 
-        .navbar-nav .nav-link i {
+        .apache-nav a {
+            color: var(--apache-light);
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .apache-nav a:hover {
+            background-color: var(--apache-surface);
+            color: var(--apache-gold);
+        }
+
+        .apache-nav a.active {
+            background-color: var(--apache-gold);
             color: var(--apache-dark);
         }
 
-        /* Main container */
-        .main-container {
-            padding: 20px 0;
-            min-height: calc(100vh - 120px);
-        }
-
-        /* Front page specific */
-        .front-page .navbar {
-            display: none !important;
-        }
-
-        .front-page .main-container {
-            padding: 0;
+        /* Main Content */
+        .apache-main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
         }
 
         /* Footer */
-        .footer {
+        .apache-footer {
             background-color: var(--apache-dark);
-            border-top: 1px solid var(--apache-gray);
+            border-top: 1px solid var(--apache-border);
             padding: 20px 0;
+            margin-top: 50px;
             text-align: center;
             color: rgba(255, 255, 255, 0.5);
-            margin-top: 40px;
+        }
+
+        /* Card Styles */
+        .apache-card {
+            background-color: var(--apache-surface);
+            border: 1px solid var(--apache-border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Form Styles */
+        .apache-form .form-control,
+        .apache-form .form-select {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--apache-border);
+            color: var(--apache-light);
+        }
+
+        .apache-form .form-control:focus,
+        .apache-form .form-select:focus {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: var(--apache-gold);
+            color: var(--apache-light);
+        }
+
+        .apache-form label {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 8px;
+        }
+
+        /* Button Styles */
+        .btn {
+            border-radius: 4px;
+            font-weight: 600;
+            padding: 8px 16px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: var(--apache-gold);
+            color: var(--apache-dark);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--apache-gold-light);
+            color: var(--apache-dark);
+        }
+
+        .btn-outline-light {
+            color: var(--apache-light);
+            border-color: var(--apache-light);
+        }
+
+        .btn-outline-light:hover {
+            background-color: var(--apache-light);
+            color: var(--apache-dark);
+        }
+
+        /* Table Styles */
+        .table {
+            color: var(--apache-light);
+            margin-bottom: 0;
+        }
+
+        .table th {
+            color: var(--apache-gold);
+            border-top: 1px solid var(--apache-border);
+            border-bottom: 1px solid var(--apache-border);
+        }
+
+        .table td,
+        .table th {
+            border-color: var(--apache-border);
+        }
+
+        .table-striped > tbody > tr:nth-of-type(odd) > * {
+            --bs-table-bg-type: rgba(255, 255, 255, 0.05);
+        }
+
+        .table-hover > tbody > tr:hover > * {
+            --bs-table-bg-type: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Alert Styles */
+        .alert {
+            border-radius: 4px;
+            border: none;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background-color: rgba(0, 123, 255, 0.2);
+            color: #0d6efd;
+        }
+
+        .alert-success {
+            background-color: rgba(40, 167, 69, 0.2);
+            color: #198754;
+        }
+
+        .alert-warning {
+            background-color: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .alert-danger {
+            background-color: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+        }
+
+        /* =======================
+           PAYMENT TRACKING STYLES
+           ======================= */
+
+        /* Payment Statement Buttons */
+        .btn-gold {
+            background-color: var(--apache-gold);
+            color: var(--apache-dark);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-gold:hover {
+            background-color: var(--apache-gold-light);
+            color: var(--apache-dark);
+        }
+
+        .btn-outline-gold {
+            background-color: transparent;
+            color: var(--apache-gold);
+            border: 1px solid var(--apache-gold);
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-outline-gold:hover {
+            background-color: var(--apache-gold);
+            color: var(--apache-dark);
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-success {
+            background-color: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+        }
+
+        .status-failed {
+            background-color: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+        }
+
+        .status-warning {
+            background-color: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .status-secondary {
+            background-color: rgba(108, 117, 125, 0.2);
+            color: #6c757d;
+        }
+
+        /* Payment Tracking Specific Styles */
+        .payment-section {
+            background-color: var(--apache-surface);
+            border: 1px solid var(--apache-border);
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .payment-title {
+            color: var(--apache-gold);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .payment-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 500px;
+        }
+
+        .payment-button {
+            background-color: var(--apache-gold);
+            color: var(--apache-dark);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            align-self: flex-start;
+            transition: all 0.3s;
+        }
+
+        .payment-button:hover {
+            background-color: var(--apache-gold-light);
+            color: var(--apache-dark);
+        }
+
+        .payment-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-paid {
+            background-color: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+        }
+
+        .status-unpaid {
+            background-color: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+        }
+
+        .status-draft {
+            background-color: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .status-finalized {
+            background-color: rgba(0, 123, 255, 0.2);
+            color: #007bff;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-button {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+        }
+
+        .mark-paid-button {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .mark-paid-button:hover {
+            background-color: #218838;
+        }
+
+        .mark-unpaid-button {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .mark-unpaid-button:hover {
+            background-color: #c82333;
+        }
+
+        /* View All Link */
+        .view-all-link {
+            color: var(--apache-gold);
+            text-decoration: none;
+            margin-top: 10px;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        .view-all-link:hover {
+            text-decoration: underline;
+            color: var(--apache-gold-light);
+        }
+
+        /* Table Styles for Payment Tracking */
+        .imports-table {
+            width: 100%;
+            border-collapse: collapse;
+            color: var(--apache-light);
+            margin-bottom: 20px;
+        }
+
+        .imports-table th,
+        .imports-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--apache-border);
+        }
+
+        .imports-table th {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--apache-gold);
+            font-weight: 600;
+        }
+
+        .imports-table tr:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Messages */
+        .messages {
+            margin-bottom: 20px;
+        }
+
+        .message {
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .message-info {
+            background-color: rgba(0, 123, 255, 0.2);
+            color: #0d6efd;
+            border: 1px solid #0d6efd;
+        }
+
+        .message-success {
+            background-color: rgba(40, 167, 69, 0.2);
+            color: #198754;
+            border: 1px solid #198754;
+        }
+
+        .message-warning {
+            background-color: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid #ffc107;
+        }
+
+        .message-error {
+            background-color: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+            border: 1px solid #dc3545;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .apache-nav {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .payment-title {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .action-button {
+                width: 100%;
+            }
         }
     </style>
-
-    {% block extra_css %}{% endblock %}
 </head>
-<body class="{% if request.resolver_match.url_name == 'front_page' %}front-page{% endif %}">
-    <!-- Conditionally show navigation bar (hide on front page) -->
-    {% if request.resolver_match.url_name != 'front_page' %}
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'artist_logs:front_page' %}">
-                Apache Music
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'artist_logs:front_page' %}">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'artist_logs:data_table' %}">Data Table</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'artist_logs:dashboard' %}">Dashboard</a>
-                    </li>
-                    <!-- PRS Admin Link as part of the navbar -->
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'artist_logs:prs_admin' %}">
-                            <i class="fas fa-file-import me-1"></i>PRS Admin
-                        </a>
-                    </li>
-                </ul>
+<body>
+    <!-- Header -->
+    <header class="apache-header">
+        <nav class="apache-navbar">
+            <a href="{% url 'artist_logs:front_page' %}" class="apache-logo">Apache Music</a>
+            <div class="apache-nav">
+                <a href="{% url 'artist_logs:front_page' %}" {% if request.resolver_match.url_name == 'front_page' %}class="active"{% endif %}>Home</a>
+                <a href="{% url 'artist_logs:data_table' %}" {% if request.resolver_match.url_name == 'data_table' %}class="active"{% endif %}>Data Table</a>
+                <a href="{% url 'artist_logs:prs_admin' %}" {% if request.resolver_match.url_name == 'prs_admin' %}class="active"{% endif %}>PRS Admin</a>
+                <a href="{% url 'artist_logs:payment_statement_list' %}" {% if request.resolver_match.url_name == 'payment_statement_list' %}class="active"{% endif %}>Payment Statements</a>
+                <a href="{% url 'artist_logs:dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="active"{% endif %}>Dashboard</a>
             </div>
-        </div>
-    </nav>
-    {% endif %}
+        </nav>
+    </header>
 
-    <!-- Main Container -->
-    <div class="container main-container">
-        {% block content %}{% endblock %}
-    </div>
+    <!-- Main Content -->
+    <main class="apache-main">
+        {% block content %}
+        {% endblock %}
+    </main>
 
     <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p class="mb-0">© {% now "Y" %} Apache Music. All rights reserved.</p>
-        </div>
+    <footer class="apache-footer">
+        <p>&copy; {% now "Y" %} Apache Music. All rights reserved.</p>
     </footer>
 
-    <!-- Bootstrap 5 JS Bundle (Popper included) -->
+    <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    {% block extra_js %}{% endblock %}
+    <!-- Custom JS -->
+    {% block extra_js %}
+    {% endblock %}
 </body>
 </html>

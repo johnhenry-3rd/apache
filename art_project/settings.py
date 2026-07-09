@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django_pandas',
     'django_tables2',
     'tabulate',
+    'django.contrib.humanize',
 
     #Default django apps
     'django.contrib.admin',

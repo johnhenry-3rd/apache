@@ -1,70 +1,190 @@
-{% extends 'artist_logs/base.html' %}
+#data_table.html"
+
+{% extends "artist_logs/base.html" %}
+{% load static humanize %}
+
+{% block title %}PRS Data Table{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">PRS Data</h2>
+<div class="container-fluid">
+    {# --- Debug Bar (Remove in production) --- #}
+    <div class="alert alert-info" role="alert">
+        Total Records: {{ prs_data.paginator.count }} |
+        Displaying: {{ prs_data|length }} |
+        {% if is_paginated %}Page: {{ page_obj.number }} of {{ page_obj.paginator.num_pages}}{% endif %}
+    </div>
 
-<!-- Filter Form - Make sure name attributes match the view -->
-<form method="get" class="mb-4">
-    <div class="row g-3">
-        <div class="col-md-4">
-            <input type="text" name="composer" class="form-control" placeholder="Filter by Composer"
-                   value="{{ composer_filter }}">
+    {# --- Filters and Search --- #}
+    <div class="row mb-4">
+        <div class="col-md-10">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" class="form-control" name="artist" placeholder="Filter by Artist..."
+                           value="{{ request.GET.artist }}">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" name="song_title" placeholder="Filter by Song Title..."
+                           value="{{ request.GET.song_title }}">
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" name="source">
+                        <option value="">All Sources</option>
+                        {% for source in sources %}
+                            <option value="{{ source.name }}" {% if request.GET.source == source.name %}selected{% endif %}>
+                                {{ source.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" name="income_type">
+                        <option value="">All Income Types</option>
+                        {% for income_type in income_types %}
+                            <option value="{{ income_type.name }}" {% if request.GET.income_type == income_type.name %}selected{% endif %}>
+                                {{ income_type.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                </div>
+            </form>
         </div>
-        <div class="col-md-4">
-            <input type="text" name="song_title" class="form-control" placeholder="Filter by Song Title"
-                   value="{{ song_title_filter }}">
-        </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary">Search</button>
-        </div>
-        <div class="col-md-2">
+        <div class="col-md-2 text-end">
             <a href="{% url 'artist_logs:data_table' %}" class="btn btn-secondary">Clear Filters</a>
         </div>
     </div>
-</form>
 
-<!-- Data Table -->
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>
-                <a href="{% url 'artist_logs:data_table' %}?sort={% if sort_by == 'composers' %}-composers{% else %}composers{% endif %}{% if composer_filter %}&composer={{ composer_filter }}{% endif %}{% if song_title_filter %}&song_title={{ song_title_filter }}{% endif %}">
-                    Composers
-                    {% if sort_by == 'composers' %}↑{% elif sort_by == '-composers' %}↓{% endif %}
-                </a>
-            </th>
-            <th>
-                <a href="{% url 'artist_logs:data_table' %}?sort={% if sort_by == 'Song_Title' %}-Song_Title{% else %}Song_Title{% endif %}{% if composer_filter %}&composer={{ composer_filter }}{% endif %}{% if song_title_filter %}&song_title={{ song_title_filter }}{% endif %}">
-                    Song Title
-                    {% if sort_by == 'Song_Title' %}↑{% elif sort_by == '-Song_Title' %}↓{% endif %}
-                </a>
-            </th>
-            <th>
-                <a href="{% url 'artist_logs:data_table' %}?sort={% if sort_by == 'Royalty_Payable' %}-Royalty_Payable{% else %}Royalty_Payable{% endif %}{% if composer_filter %}&composer={{ composer_filter }}{% endif %}{% if song_title_filter %}&song_title={{ song_title_filter }}{% endif %}">
-                    Royalty Payable
-                    {% if sort_by == 'Royalty_Payable' %}↑{% elif sort_by == '-Royalty_Payable' %}↓{% endif %}
-                </a>
-            </th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in table_data %}
-        <tr>
-            <td>
-                {% for composer in item.composers.all %}
-                    {{ composer.name }}{% if not forloop.last %}, {% endif %}
-                {% empty %}
-                    N/A
-                {% endfor %}
-            </td>
-            <td>{{ item.Song_Title|default:"N/A" }}</td>
-            <td>£{{ item.Royalty_Payable|floatformat:2|default:"0.00" }}</td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="3" class="text-center">No data matches the filters.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+    {# --- Data Table --- #}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0">PRS Data</h2>
+                    {% if is_paginated %}
+                        <div>
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination mb-0">
+                                    {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link"
+                                               href="?page=1{% if request.GET.artist %}&artist={{ request.GET.artist }}{% endif %}{% if request.GET.song_title %}&song_title={{ request.GET.song_title }}{% endif %}{% if request.GET.source %}&source={{ request.GET.source }}{% endif %}{% if request.GET.income_type %}&income_type={{ request.GET.income_type }}{% endif %}">
+                                                &laquo; First
+                                            </a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link"
+                                               href="?page={{ page_obj.previous_page_number }}{% if request.GET.artist %}&artist={{ request.GET.artist }}{% endif %}{% if request.GET.song_title %}&song_title={{ request.GET.song_title }}{% endif %}{% if request.GET.source %}&source={{ request.GET.source }}{% endif %}{% if request.GET.income_type %}&income_type={{ request.GET.income_type }}{% endif %}">
+                                                Previous
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">
+                                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                        </span>
+                                    </li>
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link"
+                                               href="?page={{ page_obj.next_page_number }}{% if request.GET.artist %}&artist={{ request.GET.artist }}{% endif %}{% if request.GET.song_title %}&song_title={{ request.GET.song_title }}{% endif %}{% if request.GET.source %}&source={{ request.GET.source }}{% endif %}{% if request.GET.income_type %}&income_type={{ request.GET.income_type }}{% endif %}">
+                                                Next
+                                            </a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link"
+                                               href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.artist %}&artist={{ request.GET.artist }}{% endif %}{% if request.GET.song_title %}&song_title={{ request.GET.song_title }}{% endif %}{% if request.GET.source %}&source={{ request.GET.source }}{% endif %}{% if request.GET.income_type %}&income_type={{ request.GET.income_type }}{% endif %}">
+                                                Last &raquo;
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                        <table class="table table-striped table-hover table-sm mb-0">
+                            <thead class="table-dark sticky-top">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Artist</th>  {# Artist now appears before Song Title #}
+                                    <th>Song Title</th>
+                                    <th>Composers</th>
+                                    <th>Source</th>
+                                    <th>Income Type</th>
+                                    <th class="text-end">Royalty Payable</th>
+                                    <th>Income Period</th>
+                                    <th>Units</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in prs_data %}
+                                <tr>
+                                    <td>{{ record.id }}</td>
+                                    <td>{{ record.artist|default:"N/A" }}</td>
+                                    <td>{{ record.song_title|default:"N/A" }}</td>
+                                    <td>{{ record.composers|default:"N/A" }}</td>
+                                    <td>{{ record.source_name|default:"N/A" }}</td>
+                                    <td>{{ record.income_type_name|default:"N/A" }}</td>
+                                    <td class="text-end">£{{ record.royalty_payable|floatformat:2 }}</td>
+                                    <td>{{ record.income_period|default:"N/A" }}</td>
+                                    <td>{{ record.units|default:0 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="9" class="text-center py-4">No records found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% if is_paginated %}
+                <div class="card-footer">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination mb-0">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="?page=1{% if request.GET.artist %}&artist={{ request.GET.artist }}{% endif %}{% if request.GET.song_title %}&song_title={{ request.GET.song_title }}{% endif %}{% if request.GET.source %}&source={{ request.GET.source }}{% endif %}{% if request.GET.income_type %}&income_type={{ request.GET.income_type }}{% endif %}">
+                                        &laquo; First
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="?page={{ page_obj.previous_page_number }}{% if request.GET.artist %}&artist={{ request.GET.artist }}{% endif %}{% if request.GET.song_title %}&song_title={{ request.GET.song_title }}{% endif %}{% if request.GET.source %}&source={{ request.GET.source }}{% endif %}{% if request.GET.income_type %}&income_type={{ request.GET.income_type }}{% endif %}">
+                                        Previous
+                                    </a>
+                                </li>
+                            {% endif %}
+                            <li class="page-item disabled">
+                                <span class="page-link">
+                                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                </span>
+                            </li>
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="?page={{ page_obj.next_page_number }}{% if request.GET.artist %}&artist={{ request.GET.artist }}{% endif %}{% if request.GET.song_title %}&song_title={{ request.GET.song_title }}{% endif %}{% if request.GET.source %}&source={{ request.GET.source }}{% endif %}{% if request.GET.income_type %}&income_type={{ request.GET.income_type }}{% endif %}">
+                                        Next
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.artist %}&artist={{ request.GET.artist }}{% endif %}{% if request.GET.song_title %}&song_title={{ request.GET.song_title }}{% endif %}{% if request.GET.source %}&source={{ request.GET.source }}{% endif %}{% if request.GET.income_type %}&income_type={{ request.GET.income_type }}{% endif %}">
+                                        Last &raquo;
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
