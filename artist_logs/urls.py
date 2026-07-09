@@ -13,6 +13,7 @@ urlpatterns = [
     path('composers/<int:pk>/', views.composer_detail, name='composer_detail'),
     path('composers/<int:pk>/edit/', views.composer_edit, name='composer_edit'),
     path('composers/<int:pk>/payments/', views.composer_payment_history, name='composer_payment_history'),
+    # artist_logs/urls.py
 
     #Payment URL's
     # Add this to your existing urlpatterns list

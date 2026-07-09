@@ -1,0 +1,200 @@
+{% extends 'artist_logs/base.html' %}
+
+{% block title %}{{ title }} - Apache Music{% endblock %}
+
+{% block content %}
+<div class="apache-card">
+    <!-- Header with Title and Back Button -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fas fa-user-music me-2" style="color: var(--apache-gold);"></i>{{ title }}
+        </h1>
+        <a href="{% url 'artist_logs:composer_list' %}" class="btn btn-outline-light">
+            <i class="fas fa-arrow-left me-1"></i> Back to Composers
+        </a>
+    </div>
+
+    <!-- Form for Creating/Editing a Composer -->
+    <form method="post" class="apache-form">
+        {% csrf_token %}
+
+        <!-- Basic Information Section -->
+        <div class="apache-card mb-4">
+            <h3><i class="fas fa-info-circle me-2" style="color: var(--apache-gold);"></i>Basic Information</h3>
+            <hr class="bg-gold">
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="{{ form.full_name.id_for_label }}" class="form-label">Full Name *</label>
+                    {{ form.full_name }}
+                    {% if form.full_name.errors %}
+                    <div class="text-danger small">{{ form.full_name.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name</label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}
+                    <div class="text-danger small">{{ form.first_name.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name</label>
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}
+                    <div class="text-danger small">{{ form.last_name.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                    <div class="text-danger small">{{ form.email.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.phone.id_for_label }}" class="form-label">Phone</label>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}
+                    <div class="text-danger small">{{ form.phone.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.address.id_for_label }}" class="form-label">Address</label>
+                {{ form.address }}
+                {% if form.address.errors %}
+                <div class="text-danger small">{{ form.address.errors }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Financial Information Section -->
+        <div class="apache-card mb-4">
+            <h3><i class="fas fa-pound-sign me-2" style="color: var(--apache-gold);"></i>Financial Information</h3>
+            <hr class="bg-gold">
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="{{ form.bank_name.id_for_label }}" class="form-label">Bank Name</label>
+                    {{ form.bank_name }}
+                    {% if form.bank_name.errors %}
+                    <div class="text-danger small">{{ form.bank_name.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.bank_sort_code.id_for_label }}" class="form-label">Sort Code</label>
+                    {{ form.bank_sort_code }}
+                    {% if form.bank_sort_code.errors %}
+                    <div class="text-danger small">{{ form.bank_sort_code.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.bank_account_number.id_for_label }}" class="form-label">Account Number</label>
+                    {{ form.bank_account_number }}
+                    {% if form.bank_account_number.errors %}
+                    <div class="text-danger small">{{ form.bank_account_number.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="{{ form.vat_registered.id_for_label }}" class="form-label">VAT Registered</label>
+                    <div class="form-check form-switch">
+                        {{ form.vat_registered }}
+                        <label class="form-check-label" for="{{ form.vat_registered.id_for_label }}">Yes</label>
+                    </div>
+                    {% if form.vat_registered.errors %}
+                    <div class="text-danger small">{{ form.vat_registered.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.vat_number.id_for_label }}" class="form-label">VAT Number</label>
+                    {{ form.vat_number }}
+                    {% if form.vat_number.errors %}
+                    <div class="text-danger small">{{ form.vat_number.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.payment_threshold.id_for_label }}" class="form-label">Payment Threshold (£)</label>
+                <div class="input-group">
+                    <span class="input-group-text">£</span>
+                    {{ form.payment_threshold }}
+                </div>
+                {% if form.payment_threshold.errors %}
+                <div class="text-danger small">{{ form.payment_threshold.errors }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Status and Notes Section -->
+        <div class="apache-card mb-4">
+            <h3><i class="fas fa-cog me-2" style="color: var(--apache-gold);"></i>Status and Notes</h3>
+            <hr class="bg-gold">
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="{{ form.is_active.id_for_label }}" class="form-label">Active</label>
+                    <div class="form-check form-switch">
+                        {{ form.is_active }}
+                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Yes</label>
+                    </div>
+                    {% if form.is_active.errors %}
+                    <div class="text-danger small">{{ form.is_active.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                <div class="text-danger small">{{ form.notes.errors }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Submit Buttons -->
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i> Save
+            </button>
+            <a href="{% url 'artist_logs:composer_list' %}" class="btn btn-outline-light">
+                <i class="fas fa-times me-1"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom styles for composer form */
+    .bg-gold {
+        background-color: var(--apache-gold) !important;
+        height: 2px;
+    }
+
+    .form-switch .form-check-input {
+        width: 2.5em;
+        height: 1.5em;
+    }
+
+    .form-switch .form-check-label {
+        margin-left: 0.5em;
+    }
+
+    .input-group-text {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--apache-border);
+        color: var(--apache-light);
+    }
+</style>
+{% endblock %}

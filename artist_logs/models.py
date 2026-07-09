@@ -204,9 +204,12 @@ class Composer(models.Model):
         if not self.composer_id:
             name_parts = self.full_name.upper().split()
             if len(name_parts) >= 2:
-                self.composer_id = f"{name_parts[-1]}-{name_parts[0]}-{abs(hash(self.full_name))[:3]}"
+                # Convert hash to string and take first 3 characters
+                hash_str = str(abs(hash(self.full_name)))[:3]
+                self.composer_id = f"{name_parts[-1]}-{name_parts[0]}-{hash_str}"
             else:
-                self.composer_id = f"{name_parts[0]}-{abs(hash(self.full_name))[:3]}"
+                hash_str = str(abs(hash(self.full_name)))[:3]
+                self.composer_id = f"{name_parts[0]}-{hash_str}"
 
         # Auto-populate first_name and last_name from full_name
         if self.full_name and not (self.first_name and self.last_name):

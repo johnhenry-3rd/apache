@@ -415,7 +415,10 @@ def composer_detail(request, pk):
     composer = get_object_or_404(Composer, pk=pk)
 
     # Get all songs by this composer
-    songs = Song.objects.filter(composer=composer).order_by('title')
+    songs = Song.objects.filter(composer=composer).order_by('title').annotate(
+        prs_count=Count('prs_records'),
+        total_earnings=Sum('prs_records__royalty_payable')
+    )
 
     # Get all PRS records for this composer's songs
     prs_records = Prs_data.objects.filter(song__composer=composer).order_by('-income_period')
@@ -444,6 +447,7 @@ def composer_create(request):
         form = ComposerForm(request.POST)
         if form.is_valid():
             composer = form.save()
+            messages.success(request, f"Composer '{composer.full_name}' created successfully!")
             return redirect('artist_logs:composer_detail', pk=composer.pk)
     else:
         form = ComposerForm()
@@ -462,6 +466,7 @@ def composer_edit(request, pk):
         form = ComposerForm(request.POST, instance=composer)
         if form.is_valid():
             form.save()
+            messages.success(request, f"Composer '{composer.full_name}' updated successfully!")
             return redirect('artist_logs:composer_detail', pk=composer.pk)
     else:
         form = ComposerForm(instance=composer)
@@ -571,6 +576,7 @@ def song_detail(request, pk):
         'paid_earnings': paid_earnings,
     })
 
+# artist_logs/views.py
 def song_create(request):
     """
     Create a new song.
@@ -579,6 +585,7 @@ def song_create(request):
         form = SongForm(request.POST)
         if form.is_valid():
             song = form.save()
+            messages.success(request, f"Song '{song.title}' created successfully!")
             return redirect('artist_logs:song_detail', pk=song.pk)
     else:
         form = SongForm()
@@ -597,6 +604,7 @@ def song_edit(request, pk):
         form = SongForm(request.POST, instance=song)
         if form.is_valid():
             form.save()
+            messages.success(request, f"Song '{song.title}' updated successfully!")
             return redirect('artist_logs:song_detail', pk=song.pk)
     else:
         form = SongForm(instance=song)
@@ -828,17 +836,11 @@ def prs_admin(request):
                             }
                         )
 
-                        # If the song already existed, update its fields
+                        # If the song already existed, ONLY set composer if it's currently None
                         if not created:
-                            song.title = song_title
-                            song.catalogue_number = catalogue_no
-                            song.isrc = isrc
-                            song.album_or_production = album
-                            song.episode = episode
-                            song.license_number = license_number
                             if not song.composer and composer:
                                 song.composer = composer
-                            song.save()
+                                song.save()  # Only save if we updated the composer
 
                         # --- Create or update Prs_data ---
                         prs_data, created = Prs_data.objects.get_or_create(
