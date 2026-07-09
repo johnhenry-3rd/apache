@@ -1,0 +1,31 @@
+<!-- artist_logs/templates/artist_logs/navbar.html -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{% url 'artist_logs:front_page' %}">Apache Music</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'artist_logs:front_page' %}">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'artist_logs:composer_list' %}">Composers</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'artist_logs:song_list' %}">Songs</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'artist_logs:data_table' %}">PRS Data</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'artist_logs:payment_statement_list' %}">Payment Statements</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'artist_logs:prs_admin' %}">Upload CSV</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>

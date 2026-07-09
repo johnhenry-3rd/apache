@@ -24,8 +24,32 @@
 
                     <!-- Navigation Cards -->
                     <div class="row g-4">
+                        <!-- Composers Card -->
+                        <div class="col-md-3">
+                            <div class="card h-100 front-page-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-user-music fa-3x mb-3" style="color: var(--apache-gold);"></i>
+                                    <h3 class="card-title">Composers</h3>
+                                    <p class="card-text">View and manage composer information and details.</p>
+                                    <a href="{% url 'artist_logs:composer_list' %}" class="btn-standard">Go to Composers</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Songs Card -->
+                        <div class="col-md-3">
+                            <div class="card h-100 front-page-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-music fa-3x mb-3" style="color: var(--apache-gold);"></i>
+                                    <h3 class="card-title">Songs</h3>
+                                    <p class="card-text">View and manage all songs in the database.</p>
+                                    <a href="{% url 'artist_logs:song_list' %}" class="btn-standard">Go to Songs</a>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Data Table Card -->
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="card h-100 front-page-card">
                                 <div class="card-body text-center">
                                     <i class="fas fa-table fa-3x mb-3" style="color: var(--apache-gold);"></i>
@@ -37,13 +61,28 @@
                         </div>
 
                         <!-- Dashboard Card -->
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="card h-100 front-page-card">
                                 <div class="card-body text-center">
                                     <i class="fas fa-tachometer-alt fa-3x mb-3" style="color: var(--apache-gold);"></i>
                                     <h3 class="card-title">Dashboard</h3>
                                     <p class="card-text">Get an overview of music data and statistics.</p>
                                     <a href="{% url 'artist_logs:dashboard' %}" class="btn-standard">Go to Dashboard</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Second Row for Additional Links -->
+                    <div class="row g-4 mt-2">
+                        <!-- Payment Statements Card -->
+                        <div class="col-md-4">
+                            <div class="card h-100 front-page-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-file-invoice-dollar fa-3x mb-3" style="color: var(--apache-gold);"></i>
+                                    <h3 class="card-title">Payment Statements</h3>
+                                    <p class="card-text">View and manage payment statements and periods.</p>
+                                    <a href="{% url 'artist_logs:payment_statement_list' %}" class="btn-standard">Go to Payment Statements</a>
                                 </div>
                             </div>
                         </div>
@@ -56,6 +95,18 @@
                                     <h3 class="card-title">PRS Admin</h3>
                                     <p class="card-text">Upload and manage PRS CSV data files.</p>
                                     <a href="{% url 'artist_logs:prs_admin' %}" class="btn-standard">Go to PRS Admin</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Empty Card for Future Use -->
+                        <div class="col-md-4">
+                            <div class="card h-100 front-page-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-chart-line fa-3x mb-3" style="color: var(--apache-gold);"></i>
+                                    <h3 class="card-title">Reports</h3>
+                                    <p class="card-text">Generate and view royalty reports.</p>
+                                    <a href="#" class="btn-standard">Coming Soon</a>
                                 </div>
                             </div>
                         </div>

@@ -66,6 +66,7 @@
         .apache-nav {
             display: flex;
             gap: 20px;
+            flex-wrap: wrap;
         }
 
         .apache-nav a {
@@ -74,6 +75,7 @@
             padding: 8px 12px;
             border-radius: 4px;
             transition: all 0.3s;
+            white-space: nowrap;
         }
 
         .apache-nav a:hover {
@@ -487,6 +489,8 @@
             <a href="{% url 'artist_logs:front_page' %}" class="apache-logo">Apache Music</a>
             <div class="apache-nav">
                 <a href="{% url 'artist_logs:front_page' %}" {% if request.resolver_match.url_name == 'front_page' %}class="active"{% endif %}>Home</a>
+                <a href="{% url 'artist_logs:composer_list' %}" {% if request.resolver_match.url_name == 'composer_list' %}class="active"{% endif %}>Composers</a>
+                <a href="{% url 'artist_logs:song_list' %}" {% if request.resolver_match.url_name == 'song_list' %}class="active"{% endif %}>Songs</a>
                 <a href="{% url 'artist_logs:data_table' %}" {% if request.resolver_match.url_name == 'data_table' %}class="active"{% endif %}>Data Table</a>
                 <a href="{% url 'artist_logs:prs_admin' %}" {% if request.resolver_match.url_name == 'prs_admin' %}class="active"{% endif %}>PRS Admin</a>
                 <a href="{% url 'artist_logs:payment_statement_list' %}" {% if request.resolver_match.url_name == 'payment_statement_list' %}class="active"{% endif %}>Payment Statements</a>

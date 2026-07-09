@@ -1,0 +1,266 @@
+{% extends 'artist_logs/base.html' %}
+
+{% block title %}Songs - Apache Music{% endblock %}
+
+{% block content %}
+<div class="apache-card">
+    <!-- Header with Title and Actions -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="fas fa-music me-2" style="color: var(--apache-gold);"></i>Songs</h1>
+            <p class="text-muted mb-0">Total: {{ songs.paginator.count }} songs</p>
+        </div>
+        <div>
+            <a href="{% url 'artist_logs:song_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Add Song
+            </a>
+        </div>
+    </div>
+
+    <!-- Search and Filter Bar -->
+    <div class="apache-card mb-4">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Search</label>
+                <div class="input-group">
+                    <input type="text" class="form-control apache-form" id="search" name="search"
+                           placeholder="Title or code..." value="{{ request.GET.search }}">
+                    <button class="btn btn-gold" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label for="composer" class="form-label">Composer</label>
+                <select class="form-select apache-form" id="composer" name="composer">
+                    <option value="">All Composers</option>
+                    {% for composer in composers %}
+                    <option value="{{ composer.id }}" {% if request.GET.composer|stringformat:"s" == composer.id|stringformat:"s" %}selected{% endif %}>
+                        {{ composer.full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="has_composer" class="form-label">Composer Status</label>
+                <select class="form-select apache-form" id="has_composer" name="has_composer">
+                    <option value="">All</option>
+                    <option value="yes" {% if request.GET.has_composer == 'yes' %}selected{% endif %}>With Composer</option>
+                    <option value="no" {% if request.GET.has_composer == 'no' %}selected{% endif %}>Without Composer</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-light w-100" onclick="window.location.href='{% url 'artist_logs:song_list' %}'">
+                    <i class="fas fa-times me-1"></i> Clear
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-dark border-gold">
+                <div class="card-body text-center">
+                    <i class="fas fa-music fa-2x mb-2" style="color: var(--apache-gold);"></i>
+                    <h3 class="card-title">{{ songs.paginator.count }}</h3>
+                    <p class="card-text">Total Songs</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-dark border-gold">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-2x mb-2" style="color: var(--apache-gold);"></i>
+                    <h3 class="card-title">{{ composers_with_songs }}</h3>
+                    <p class="card-text">Composers with Songs</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-dark border-gold">
+                <div class="card-body text-center">
+                    <i class="fas fa-pound-sign fa-2x mb-2" style="color: var(--apache-gold);"></i>
+                    <h3 class="card-title">£{{ total_earnings|floatformat:0 }}</h3>
+                    <p class="card-text">Total Earnings</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-dark border-gold">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-2x mb-2" style="color: var(--apache-gold);"></i>
+                    <h3 class="card-title">{{ songs_with_prs }}</h3>
+                    <p class="card-text">Songs with PRS Data</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Songs Table -->
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Title</th>
+                    <th>Code</th>
+                    <th>Composer</th>
+                    <th>PRS Records</th>
+                    <th>Total Earnings</th>
+                    <th>ISRC</th>
+                    <th>Catalogue No</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for song in songs %}
+                <tr>
+                    <td>
+                        <a href="{% url 'artist_logs:song_detail' song.id %}" class="text-gold">
+                            <strong>{{ song.title }}</strong>
+                        </a>
+                        {% if song.album_or_production %}
+                        <div class="text-muted small">{{ song.album_or_production }}</div>
+                        {% endif %}
+                    </td>
+                    <td>{{ song.code|default:"-" }}</td>
+                    <td>
+                        {% if song.composer %}
+                        <a href="{% url 'artist_logs:composer_detail' song.composer.id %}" class="text-gold">
+                            {{ song.composer.full_name }}
+                        </a>
+                        {% else %}
+                        <span class="text-muted">No composer</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ song.prs_records.count }}</td>
+                    <td>£{{ song.total_earnings|floatformat:2 }}</td>
+                    <td>{{ song.isrc|default:"-" }}</td>
+                    <td>{{ song.catalogue_number|default:"-" }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'artist_logs:song_detail' song.id %}" class="btn btn-outline-gold btn-sm">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'artist_logs:song_edit' song.id %}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% if song.composer %}
+                            <a href="{% url 'artist_logs:composer_detail' song.composer.id %}" class="btn btn-outline-gold btn-sm">
+                                <i class="fas fa-user-music"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">No songs found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.composer %}&composer={{ request.GET.composer }}{% endif %}{% if request.GET.has_composer %}&has_composer={{ request.GET.has_composer }}{% endif %}" aria-label="First">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.composer %}&composer={{ request.GET.composer }}{% endif %}{% if request.GET.has_composer %}&has_composer={{ request.GET.has_composer }}{% endif %}" aria-label="Previous">
+                    <span aria-hidden="true">&lsaquo;</span>
+                </a>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.composer %}&composer={{ request.GET.composer }}{% endif %}{% if request.GET.has_composer %}&has_composer={{ request.GET.has_composer }}{% endif %}">{{ num }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.composer %}&composer={{ request.GET.composer }}{% endif %}{% if request.GET.has_composer %}&has_composer={{ request.GET.has_composer }}{% endif %}" aria-label="Next">
+                    <span aria-hidden="true">&rsaquo;</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.composer %}&composer={{ request.GET.composer }}{% endif %}{% if request.GET.has_composer %}&has_composer={{ request.GET.has_composer }}{% endif %}" aria-label="Last">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom styles for song list */
+    .border-gold {
+        border: 1px solid var(--apache-gold) !important;
+    }
+
+    .text-gold {
+        color: var(--apache-gold) !important;
+    }
+
+    .bg-dark {
+        background-color: var(--apache-dark) !important;
+    }
+
+    .table-dark {
+        --bs-table-bg: var(--apache-surface);
+        --bs-table-color: var(--apache-light);
+        --bs-table-border-color: var(--apache-border);
+    }
+
+    .pagination .page-link {
+        background-color: var(--apache-surface);
+        border: 1px solid var(--apache-border);
+        color: var(--apache-light);
+    }
+
+    .pagination .page-link:hover {
+        background-color: var(--apache-gold);
+        border-color: var(--apache-gold);
+        color: var(--apache-dark);
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: var(--apache-gold);
+        border-color: var(--apache-gold);
+        color: var(--apache-dark);
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    /* Fix for select dropdown in dark theme */
+    .form-select {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid var(--apache-border) !important;
+        color: var(--apache-light) !important;
+    }
+
+    .form-select option {
+        background-color: var(--apache-dark);
+        color: var(--apache-light);
+    }
+</style>
+{% endblock %}

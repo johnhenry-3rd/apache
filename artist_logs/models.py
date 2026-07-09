@@ -82,26 +82,86 @@ class IncomeType(models.Model):
 
 class Composer(models.Model):
     """
-    Lookup table for composers with unique identification.
-    Each composer can have multiple songs, but each song has only one composer.
+    Reference table for composers/artists.
+    Each composer has:
+    - Unique identifier (composer_id)
+    - Name (full_name, first_name, last_name)
+    - Contact details (email, phone, address)
+    - Financial details (bank account, sort code, VAT info)
+    - Payment threshold (£100 default)
+    - Status (active/inactive)
     """
     # Unique identifiers
-    composer_id = models.CharField(max_length=50, unique=True, blank=True, null=True)
-    full_name = models.CharField(max_length=255, unique=True)
-    first_name = models.CharField(max_length=100, blank=True)
-    last_name = models.CharField(max_length=100, blank=True)
+    composer_id = models.CharField(
+        max_length=50,
+        unique=True,
+        blank=True,
+        null=True,
+        help_text="Unique identifier for the composer (auto-generated)"
+    )
+    full_name = models.CharField(
+        max_length=255,
+        unique=True,
+        help_text="Full name of the composer (e.g., 'Thomas Trueman')"
+    )
+    first_name = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="First name of the composer"
+    )
+    last_name = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Last name of the composer"
+    )
 
     # Contact information
-    email = models.EmailField(blank=True, null=True)
-    phone = models.CharField(max_length=20, blank=True, null=True)
-    address = models.TextField(blank=True, null=True)
+    email = models.EmailField(
+        blank=True,
+        null=True,
+        help_text="Email address for the composer"
+    )
+    phone = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Phone number for the composer"
+    )
+    address = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Postal address for the composer"
+    )
 
     # Financial details
-    bank_account_number = models.CharField(max_length=50, blank=True, null=True)
-    bank_sort_code = models.CharField(max_length=20, blank=True, null=True)
-    bank_name = models.CharField(max_length=100, blank=True, null=True)
-    vat_registered = models.BooleanField(default=False)
-    vat_number = models.CharField(max_length=50, blank=True, null=True)
+    bank_account_number = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Bank account number for payments"
+    )
+    bank_sort_code = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Bank sort code for payments"
+    )
+    bank_name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Name of the bank"
+    )
+    vat_registered = models.BooleanField(
+        default=False,
+        help_text="Whether the composer is VAT registered"
+    )
+    vat_number = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="VAT registration number"
+    )
     payment_threshold = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -110,10 +170,23 @@ class Composer(models.Model):
     )
 
     # Status and metadata
-    is_active = models.BooleanField(default=True)
-    notes = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether the composer is active"
+    )
+    notes = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Additional notes about the composer"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When this composer record was created"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text="When this composer record was last updated"
+    )
 
     class Meta:
         ordering = ['last_name', 'first_name']
@@ -124,6 +197,9 @@ class Composer(models.Model):
         return self.full_name
 
     def save(self, *args, **kwargs):
+        """
+        Auto-generate composer_id and populate first_name/last_name from full_name.
+        """
         # Auto-generate composer_id if not provided
         if not self.composer_id:
             name_parts = self.full_name.upper().split()
@@ -145,15 +221,24 @@ class Composer(models.Model):
 
     @classmethod
     def find_or_create_by_name(cls, name):
-        """Find a composer by name or create a new one."""
+        """
+        Find a composer by name or create a new one.
+        Handles name variations (e.g., "Thomas/Trueman" → "Thomas Trueman").
+        """
         if not name or not name.strip():
             return None
 
-        # Normalize the name
-        normalized = re.sub(r'[^\w\s-]', ' ', name).strip()
-        normalized = re.sub(r'\s+', ' ', normalized).title()
+        # Normalize the name: remove special chars, extra spaces, and standardize case
+        normalized = re.sub(r'[^\w\s-]', ' ', name).strip()  # Remove /, ;, etc.
+        normalized = re.sub(r'\s+', ' ', normalized).title()  # Collapse spaces and title case
 
-        # Try to find an existing composer
+        # Handle "Last, First" format (e.g., "Trueman, Thomas")
+        if ',' in normalized:
+            parts = [p.strip() for p in normalized.split(',')]
+            if len(parts) == 2:
+                normalized = f"{parts[1]} {parts[0]}"
+
+        # Try to find an existing composer (case-insensitive)
         composer = cls.objects.filter(full_name__iexact=normalized).first()
 
         if not composer:
@@ -166,29 +251,70 @@ class Composer(models.Model):
 # =============================================
 
 class Song(models.Model):
-    """Model representing a song with a unique code."""
-    code = models.CharField(max_length=20, unique=True, blank=True, null=True)
-    title = models.CharField(max_length=255)
-    catalogue_number = models.CharField(max_length=50, blank=True, null=True)
-    isrc = models.CharField(max_length=12, blank=True, null=True)
-    album_or_production = models.CharField(max_length=255, blank=True, null=True)
-    episode = models.CharField(max_length=255, blank=True, null=True)
-    license_number = models.CharField(max_length=100, blank=True, null=True)
+    """
+    Model representing a song with a unique code.
+    Each song has exactly one composer (ForeignKey to Composer).
+    """
+    code = models.CharField(
+        max_length=20,
+        unique=True,
+        blank=True,
+        null=True,
+        help_text="Unique code for the song (e.g., '6087301')"
+    )
+    title = models.CharField(
+        max_length=255,
+        help_text="Title of the song (e.g., 'Dank')"
+    )
+    catalogue_number = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Catalogue number of the song"
+    )
+    isrc = models.CharField(
+        max_length=12,
+        blank=True,
+        null=True,
+        help_text="International Standard Recording Code"
+    )
+    album_or_production = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Album or production the song belongs to"
+    )
+    episode = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Episode the song belongs to (if applicable)"
+    )
+    license_number = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="License number for the song"
+    )
 
-    # One composer per song
+    # One composer per song (ForeignKey to Composer)
     composer = models.ForeignKey(
         Composer,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='songs'
+        related_name='songs',
+        help_text="The composer of this song (each song has exactly one composer)"
     )
 
-    # Legacy field for backward compatibility
-    artists = models.ManyToManyField(Artist, related_name='songs_legacy', blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When this song was created"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text="When this song was last updated"
+    )
 
     class Meta:
         constraints = [
@@ -206,17 +332,9 @@ class Song(models.Model):
         return f"{self.title} ({self.code})" if self.code else self.title
 
     def save(self, *args, **kwargs):
-        # If composer is not set but we have artists, try to set the first artist as composer
-        if not self.composer and self.artists.count() > 0:
-            first_artist = self.artists.first()
-            composer, _ = Composer.objects.get_or_create(
-                full_name=f"{first_artist.first_name} {first_artist.last_name}".strip(),
-                defaults={
-                    'first_name': first_artist.first_name,
-                    'last_name': first_artist.last_name
-                }
-            )
-            self.composer = composer
+        """
+        Custom save method to handle composer linking.
+        """
         super().save(*args, **kwargs)
 
 # =============================================
@@ -257,70 +375,251 @@ class PaymentStatement(models.Model):
 
 class Prs_data(models.Model):
     """
-    Model to store PRS (Performing Right Society) data records.
-    Each record represents royalty data for a specific song, source, and income type.
-    Composer information is accessed via the Song model (one composer per song).
+    Model to store PRS data records.
+    Each record links to a Song, which links to a Composer.
     """
-
     # Basic identifiers
-    song = models.ForeignKey(Song, on_delete=models.SET_NULL, null=True, blank=True, related_name='prs_records')
-    song_title = models.CharField(max_length=255, db_index=True)
-    song_code = models.CharField(max_length=20, blank=True, null=True, db_index=True)
+    song = models.ForeignKey(
+        Song,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='prs_records',
+        help_text="The song this PRS record relates to"
+    )
+    song_title = models.CharField(
+        max_length=255,
+        db_index=True,
+        help_text="Title of the song (denormalized from Song for performance)"
+    )
+    song_code = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text="Unique code for the song (denormalized from Song)"
+    )
 
     # Source information
-    source = models.ForeignKey(Source, on_delete=models.SET_NULL, null=True, blank=True)
-    source_code = models.CharField(max_length=20, blank=True, null=True)
-    source_name = models.CharField(max_length=255, blank=True, null=True)
-    domestic_or_foreign = models.CharField(max_length=1, choices=[('D', 'Domestic'), ('F', 'Foreign')], blank=True, null=True)
-    foreign_source = models.CharField(max_length=255, blank=True, null=True)
-    royalty_country_code = models.CharField(max_length=3, blank=True, null=True)
-    royalty_country_description = models.CharField(max_length=100, blank=True, null=True)
+    source = models.ForeignKey(
+        Source,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="The source of the royalty income"
+    )
+    source_code = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Code of the source (denormalized from Source)"
+    )
+    source_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Name of the source (denormalized from Source)"
+    )
+    domestic_or_foreign = models.CharField(
+        max_length=1,
+        choices=[('D', 'Domestic'), ('F', 'Foreign')],
+        blank=True,
+        null=True,
+        help_text="Whether the source is domestic or foreign"
+    )
+    foreign_source = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Name of the foreign source if applicable"
+    )
+    royalty_country_code = models.CharField(
+        max_length=3,
+        blank=True,
+        null=True,
+        help_text="Country code for the royalty source"
+    )
+    royalty_country_description = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Description of the royalty country"
+    )
 
     # Income information
-    income_type = models.ForeignKey(IncomeType, on_delete=models.SET_NULL, null=True, blank=True)
-    income_type_code = models.CharField(max_length=20, blank=True, null=True)
-    income_type_name = models.CharField(max_length=100, blank=True, null=True)
-    main_income_type_name = models.CharField(max_length=100, blank=True, null=True)
+    income_type = models.ForeignKey(
+        IncomeType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="The type of income"
+    )
+    income_type_code = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Code of the income type (denormalized from IncomeType)"
+    )
+    income_type_name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Name of the income type (denormalized from IncomeType)"
+    )
+    main_income_type_name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Main category of the income type"
+    )
 
     # Financial data
-    units = models.IntegerField(default=0, validators=[MinValueValidator(0)])
-    percentage_collected = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-    amount_collected = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    royalty_payout_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-    royalty_payable = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    units = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        help_text="Number of units (e.g., plays, streams)"
+    )
+    percentage_collected = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        help_text="Percentage of royalty collected"
+    )
+    amount_collected = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0.00,
+        help_text="Total amount collected"
+    )
+    royalty_payout_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        help_text="Percentage of royalty to be paid out"
+    )
+    royalty_payable = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0.00,
+        help_text="Amount payable to the composer"
+    )
 
     # Statement information
-    statement_id_year = models.CharField(max_length=10, blank=True, null=True)
-    statement_id_number = models.CharField(max_length=20, blank=True, null=True)
-    income_period = models.CharField(max_length=20, blank=True, null=True, db_index=True)
+    statement_id_year = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        help_text="Year part of the statement ID"
+    )
+    statement_id_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Number part of the statement ID"
+    )
+    income_period = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text="Period for which the royalty was earned (e.g., 202604)"
+    )
 
     # Additional fields (legacy)
-    catalogue_no = models.CharField(max_length=50, blank=True, null=True)
-    composers = models.TextField(blank=True, null=True)  # Legacy field
-    original_source_as_received = models.CharField(max_length=100, blank=True, null=True)
-    original_source = models.CharField(max_length=255, blank=True, null=True)
-    artist = models.CharField(max_length=255, blank=True, null=True)  # Legacy field
-    isrc = models.CharField(max_length=12, blank=True, null=True)
-    album_or_production = models.CharField(max_length=255, blank=True, null=True)
-    episode = models.CharField(max_length=255, blank=True, null=True)
-    license_number = models.CharField(max_length=100, blank=True, null=True)
+    catalogue_no = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Catalogue number of the song (legacy field)"
+    )
+    composers = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Legacy field: Composer names as text (for backward compatibility)"
+    )
+    original_source_as_received = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Original source as received in the data"
+    )
+    original_source = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Original source of the royalty"
+    )
+    artist = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Legacy field: Artist name as text (for backward compatibility)"
+    )
+    isrc = models.CharField(
+        max_length=12,
+        blank=True,
+        null=True,
+        help_text="International Standard Recording Code"
+    )
+    album_or_production = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Album or production the song belongs to"
+    )
+    episode = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Episode the song belongs to (if applicable)"
+    )
+    license_number = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="License number for the song"
+    )
 
     # Payment tracking fields
-    is_paid = models.BooleanField(default=False)
-    payment_date = models.DateField(blank=True, null=True)
-    payment_amount = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    is_paid = models.BooleanField(
+        default=False,
+        help_text="Whether this record has been paid"
+    )
+    payment_date = models.DateField(
+        blank=True,
+        null=True,
+        help_text="Date when the payment was made"
+    )
+    payment_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text="Amount paid for this record"
+    )
     payment_statement = models.ForeignKey(
         PaymentStatement,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='prs_records'
+        related_name='prs_records',
+        help_text="The payment statement this record is associated with"
     )
-    payment_notes = models.TextField(blank=True, null=True)
+    payment_notes = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Notes about the payment"
+    )
 
     # Metadata
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When this record was created"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text="When this record was last updated"
+    )
 
     class Meta:
         verbose_name = "PRS Data Record"
@@ -338,7 +637,9 @@ class Prs_data(models.Model):
         return f"{self.song_title} - £{self.royalty_payable} ({self.income_period})"
 
     def save(self, *args, **kwargs):
-        # Auto-populate denormalized fields
+        """
+        Custom save method to auto-populate denormalized fields.
+        """
         if self.song and not self.song_title:
             self.song_title = self.song.title
         if self.song and self.song.code and not self.song_code:
@@ -357,19 +658,28 @@ class Prs_data(models.Model):
 
     @property
     def composer(self):
-        """Get the composer from the song."""
+        """
+        Property to get the composer from the song.
+        Returns None if no song or no composer is linked.
+        """
         return self.song.composer if self.song else None
 
     @property
     def composer_name(self):
-        """Get the composer's name, falling back to legacy artist field."""
+        """
+        Property to get the composer's name.
+        Falls back to the legacy artist field if no composer is linked.
+        """
         if self.composer:
             return self.composer.full_name
         return self.artist or "Unknown"
 
     def mark_as_paid(self, payment_statement=None, payment_date=None, payment_amount=None, notes=None):
-        """Mark this record as paid."""
+        """
+        Helper method to mark this record as paid.
+        """
         self.is_paid = True
+
         if payment_statement:
             self.payment_statement = payment_statement
         if payment_date:
@@ -383,10 +693,13 @@ class Prs_data(models.Model):
                 self.payment_notes += f"\nMarked as paid on {timezone.now().date()}"
             else:
                 self.payment_notes = f"Marked as paid on {timezone.now().date()}"
+
         self.save()
 
     def mark_as_unpaid(self):
-        """Mark this record as unpaid."""
+        """
+        Helper method to mark this record as unpaid.
+        """
         self.is_paid = False
         self.payment_date = None
         self.payment_amount = None
@@ -455,24 +768,27 @@ class PaymentPlan(models.Model):
 
     @classmethod
     def generate_payment_plans(cls, statement):
-        """Generate payment plans for composers who have reached the £100 threshold."""
         from django.db.models import Sum
 
+        # Get all unpaid PRS records for this statement's period
         prs_records = Prs_data.objects.filter(
             is_paid=False,
             income_period__gte=statement.start_period,
             income_period__lte=statement.end_period
         )
 
+        # Group by composer (via song.composer) and sum royalties
         composer_totals = prs_records.values('song__composer').annotate(
             total_royalty=Sum('royalty_payable')
         ).filter(total_royalty__gte=100)
 
+        # Create payment plans for composers who meet the threshold
         created_plans = []
         for entry in composer_totals:
             composer = Composer.objects.get(id=entry['song__composer'])
             total = entry['total_royalty']
 
+            # Check if a payment plan already exists
             existing_plan = PaymentPlan.objects.filter(
                 composer=composer,
                 payment_statement=statement,
@@ -487,7 +803,7 @@ class PaymentPlan(models.Model):
                     end_date=statement.statement_date,
                     total_amount=total,
                     status='draft',
-                    notes=f"Auto-generated for {statement.statement_number}"
+                 notes=f"Auto-generated for {statement.statement_number}"
                 )
                 created_plans.append(plan)
 

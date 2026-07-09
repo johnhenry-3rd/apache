@@ -1,0 +1,206 @@
+{% extends 'artist_logs/base.html' %}
+
+{% block title %}{{ song.title }} - Apache Music{% endblock %}
+
+{% block content %}
+<div class="apache-card">
+    <!-- Header with Back Button -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="fas fa-music me-2" style="color: var(--apache-gold);"></i>{{ song.title }}</h1>
+            <p class="text-muted mb-0">
+                {% if song.code %}Code: {{ song.code }}{% endif %}
+                {% if song.catalogue_number %} | Catalogue: {{ song.catalogue_number }}{% endif %}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'artist_logs:song_list' %}" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left me-1"></i> Back to Songs
+            </a>
+        </div>
+    </div>
+
+    <!-- Song Information Card -->
+    <div class="apache-card mb-4">
+        <h3><i class="fas fa-info-circle me-2" style="color: var(--apache-gold);"></i>Song Information</h3>
+        <hr class="bg-gold">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <strong>Title:</strong> {{ song.title }}
+                </div>
+                <div class="mb-3">
+                    <strong>Code:</strong> {{ song.code|default:"-" }}
+                </div>
+                <div class="mb-3">
+                    <strong>ISRC:</strong> {{ song.isrc|default:"-" }}
+                </div>
+                <div class="mb-3">
+                    <strong>Catalogue Number:</strong> {{ song.catalogue_number|default:"-" }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <strong>Album/Production:</strong> {{ song.album_or_production|default:"-" }}
+                </div>
+                <div class="mb-3">
+                    <strong>Episode:</strong> {{ song.episode|default:"-" }}
+                </div>
+                <div class="mb-3">
+                    <strong>License Number:</strong> {{ song.license_number|default:"-" }}
+                </div>
+                <div class="mb-3">
+                    <strong>Composer:</strong>
+                    {% if song.composer %}
+                    <a href="{% url 'artist_logs:composer_detail' song.composer.id %}" class="text-gold">
+                        {{ song.composer.full_name }}
+                    </a>
+                    {% else %}
+                    <span class="text-muted">No composer assigned</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary Card -->
+    <div class="apache-card mb-4">
+        <h3><i class="fas fa-pound-sign me-2" style="color: var(--apache-gold);"></i>Financial Summary</h3>
+        <hr class="bg-gold">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card bg-dark border-gold mb-3">
+                    <div class="card-body text-center">
+                        <i class="fas fa-file-invoice fa-2x mb-2" style="color: var(--apache-gold);"></i>
+                        <h3 class="card-title">{{ song.prs_records.count }}</h3>
+                        <p class="card-text">PRS Records</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-dark border-gold mb-3">
+                    <div class="card-body text-center">
+                        <i class="fas fa-pound-sign fa-2x mb-2" style="color: var(--apache-gold);"></i>
+                        <h3 class="card-title">£{{ total_earnings|floatformat:2 }}</h3>
+                        <p class="card-text">Total Earnings</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-dark border-gold mb-3">
+                    <div class="card-body text-center">
+                        <i class="fas fa-check-circle fa-2x mb-2" style="color: var(--apache-gold);"></i>
+                        <h3 class="card-title">£{{ paid_earnings|floatformat:2 }}</h3>
+                        <p class="card-text">Paid</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-dark border-gold mb-3">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exclamation-circle fa-2x mb-2" style="color: var(--apache-gold);"></i>
+                        <h3 class="card-title">£{{ unpaid_earnings|floatformat:2 }}</h3>
+                        <p class="card-text">Unpaid</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRS Records Table -->
+    <div class="apache-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3><i class="fas fa-table me-2" style="color: var(--apache-gold);"></i>PRS Records</h3>
+            <a href="{% url 'artist_logs:data_table' %}?song={{ song.id }}" class="btn btn-outline-gold">
+                <i class="fas fa-filter me-1"></i> Filter Data Table
+            </a>
+        </div>
+        <hr class="bg-gold">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Income Period</th>
+                        <th>Source</th>
+                        <th>Income Type</th>
+                        <th>Royalty Payable</th>
+                        <th>Paid</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in prs_records %}
+                    <tr>
+                        <td>{{ record.income_period }}</td>
+                        <td>{{ record.source_name|default:"-" }}</td>
+                        <td>{{ record.income_type_name|default:"-" }}</td>
+                        <td>£{{ record.royalty_payable|floatformat:2 }}</td>
+                        <td>
+                            {% if record.is_paid %}
+                            <span class="status-badge status-success">Paid</span>
+                            {% else %}
+                            <span class="status-badge status-warning">Unpaid</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'artist_logs:prs_record_detail' record.id %}" class="btn btn-outline-gold btn-sm">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No PRS records found for this song.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="apache-card mt-4">
+        <div class="d-flex gap-2">
+            <a href="{% url 'artist_logs:song_edit' song.id %}" class="btn btn-primary">
+                <i class="fas fa-edit me-1"></i> Edit Song
+            </a>
+            {% if song.composer %}
+            <a href="{% url 'artist_logs:composer_detail' song.composer.id %}" class="btn btn-outline-gold">
+                <i class="fas fa-user-music me-1"></i> View Composer
+            </a>
+            {% endif %}
+            <a href="{% url 'artist_logs:song_list' %}" class="btn btn-outline-light">
+                <i class="fas fa-list me-1"></i> All Songs
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom styles for song detail page */
+    .bg-gold {
+        background-color: var(--apache-gold) !important;
+        height: 2px;
+    }
+
+    .border-gold {
+        border: 1px solid var(--apache-gold) !important;
+    }
+
+    .text-gold {
+        color: var(--apache-gold) !important;
+    }
+
+    .bg-dark {
+        background-color: var(--apache-dark) !important;
+    }
+
+    .table-dark {
+        --bs-table-bg: var(--apache-surface);
+        --bs-table-color: var(--apache-light);
+        --bs-table-border-color: var(--apache-border);
+    }
+</style>
+{% endblock %}
