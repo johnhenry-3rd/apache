@@ -319,12 +319,18 @@ class Song(models.Model):
         help_text="When this song was last updated"
     )
 
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields=['code'],
                 name='unique_song_code',
                 condition=models.Q(code__isnull=False)
+            ),
+            models.UniqueConstraint(
+                fields=['composer', 'title'],
+                name='unique_song_title_per_composer',
+                condition=models.Q(composer__isnull=False)
             )
         ]
         verbose_name = "Song"

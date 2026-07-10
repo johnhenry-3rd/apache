@@ -18,6 +18,8 @@ urlpatterns = [
     #Payment URL's
     # Add this to your existing urlpatterns list
     path('payment-statements/create/', views.create_payment_statement, name='create_payment_statement'),
+    path('payment-statements/create/', views.create_payment_statement, name='payment_statement_create'),
+
 
     # Song URLs
     path('songs/', views.song_list, name='song_list'),

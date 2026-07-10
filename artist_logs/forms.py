@@ -2,6 +2,7 @@
 from django import forms
 from .models import Composer, Song
 from .models import PaymentStatement
+from .models import Song, Composer
 
 class ComposerForm(forms.ModelForm):
     class Meta:
@@ -30,18 +31,17 @@ class ComposerForm(forms.ModelForm):
             'payment_threshold': 'Payment Threshold (£)',
         }
 
-# artist_logs/forms.py
-from django import forms
-from .models import Song, Composer
+
 
 class SongForm(forms.ModelForm):
     class Meta:
         model = Song
-        fields = [
-            'title', 'code', 'catalogue_number', 'isrc',
-            'album_or_production', 'episode', 'license_number', 'composer'
-        ]
+        fields = ['title', 'code', 'composer', 'catalogue_number', 'isrc', 'album_or_production', 'episode', 'license_number']
         widgets = {
+            'composer': forms.Select(attrs={
+                'class': 'form-select apache-form',
+                'style': 'color: #ffffff !important; background-color: var(--apache-dark) !important;'
+            }),
             'title': forms.TextInput(attrs={'class': 'form-control apache-form'}),
             'code': forms.TextInput(attrs={'class': 'form-control apache-form'}),
             'catalogue_number': forms.TextInput(attrs={'class': 'form-control apache-form'}),
@@ -49,10 +49,6 @@ class SongForm(forms.ModelForm):
             'album_or_production': forms.TextInput(attrs={'class': 'form-control apache-form'}),
             'episode': forms.TextInput(attrs={'class': 'form-control apache-form'}),
             'license_number': forms.TextInput(attrs={'class': 'form-control apache-form'}),
-            'composer': forms.Select(attrs={'class': 'form-select apache-form'}),
-        }
-        labels = {
-            'album_or_production': 'Album/Production',
         }
 
 
@@ -60,11 +56,53 @@ class SongForm(forms.ModelForm):
 class PaymentStatementForm(forms.ModelForm):
     class Meta:
         model = PaymentStatement
-        fields = ['statement_number', 'statement_date', 'start_period', 'end_period', 'notes']
+        fields = [
+            'statement_number',
+            'statement_date',
+            'start_period',
+            'end_period',
+            'total_amount',
+            'status',
+            'notes',
+        ]
         widgets = {
-            'statement_number': forms.TextInput(attrs={'class': 'form-control apache-form'}),
-            'statement_date': forms.DateInput(attrs={'class': 'form-control apache-form', 'type': 'date'}),
-            'start_period': forms.TextInput(attrs={'class': 'form-control apache-form', 'placeholder': 'YYYYMM'}),
-            'end_period': forms.TextInput(attrs={'class': 'form-control apache-form', 'placeholder': 'YYYYMM'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control apache-form', 'rows': 3}),
+            'statement_number': forms.TextInput(attrs={
+                'class': 'form-control apache-form',
+                'placeholder': 'e.g., BMG-2025-01'
+            }),
+            'statement_date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control apache-form'
+            }),
+            'start_period': forms.TextInput(attrs={
+                'class': 'form-control apache-form',
+                'placeholder': 'e.g., 202501'
+            }),
+            'end_period': forms.TextInput(attrs={
+                'class': 'form-control apache-form',
+                'placeholder': 'e.g., 202506'
+            }),
+            'total_amount': forms.NumberInput(attrs={
+                'class': 'form-control apache-form',
+                'step': '0.01'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'form-select apache-form'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control apache-form',
+                'rows': 3,
+                'placeholder': 'Additional notes (optional)'
+            }),
+        }
+        labels = {
+            'statement_date': 'Statement Date',
+            'start_period': 'Start Period (YYYYMM)',
+            'end_period': 'End Period (YYYYMM)',
+            'total_amount': 'Total Amount (£)',
+            'status': 'Status',
+        }
+        help_texts = {
+            'start_period': 'Format: YYYYMM (e.g., 202501 for January 2025)',
+            'end_period': 'Format: YYYYMM (e.g., 202506 for June 2025)',
         }

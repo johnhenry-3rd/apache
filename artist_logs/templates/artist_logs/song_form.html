@@ -28,14 +28,14 @@
                     <label for="{{ form.title.id_for_label }}" class="form-label">Title *</label>
                     {{ form.title }}
                     {% if form.title.errors %}
-                    <div class="text-danger small">{{ form.title.errors }}</div>
+                    <div class="text-danger small mt-1">{{ form.title.errors }}</div>
                     {% endif %}
                 </div>
                 <div class="col-md-6">
                     <label for="{{ form.code.id_for_label }}" class="form-label">Code</label>
                     {{ form.code }}
                     {% if form.code.errors %}
-                    <div class="text-danger small">{{ form.code.errors }}</div>
+                    <div class="text-danger small mt-1">{{ form.code.errors }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -45,14 +45,14 @@
                     <label for="{{ form.catalogue_number.id_for_label }}" class="form-label">Catalogue Number</label>
                     {{ form.catalogue_number }}
                     {% if form.catalogue_number.errors %}
-                    <div class="text-danger small">{{ form.catalogue_number.errors }}</div>
+                    <div class="text-danger small mt-1">{{ form.catalogue_number.errors }}</div>
                     {% endif %}
                 </div>
                 <div class="col-md-6">
                     <label for="{{ form.isrc.id_for_label }}" class="form-label">ISRC</label>
                     {{ form.isrc }}
                     {% if form.isrc.errors %}
-                    <div class="text-danger small">{{ form.isrc.errors }}</div>
+                    <div class="text-danger small mt-1">{{ form.isrc.errors }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -62,14 +62,14 @@
                     <label for="{{ form.album_or_production.id_for_label }}" class="form-label">Album/Production</label>
                     {{ form.album_or_production }}
                     {% if form.album_or_production.errors %}
-                    <div class="text-danger small">{{ form.album_or_production.errors }}</div>
+                    <div class="text-danger small mt-1">{{ form.album_or_production.errors }}</div>
                     {% endif %}
                 </div>
                 <div class="col-md-6">
                     <label for="{{ form.episode.id_for_label }}" class="form-label">Episode</label>
                     {{ form.episode }}
                     {% if form.episode.errors %}
-                    <div class="text-danger small">{{ form.episode.errors }}</div>
+                    <div class="text-danger small mt-1">{{ form.episode.errors }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -78,7 +78,7 @@
                 <label for="{{ form.license_number.id_for_label }}" class="form-label">License Number</label>
                 {{ form.license_number }}
                 {% if form.license_number.errors %}
-                <div class="text-danger small">{{ form.license_number.errors }}</div>
+                <div class="text-danger small mt-1">{{ form.license_number.errors }}</div>
                 {% endif %}
             </div>
 
@@ -86,7 +86,7 @@
                 <label for="{{ form.composer.id_for_label }}" class="form-label">Composer *</label>
                 {{ form.composer }}
                 {% if form.composer.errors %}
-                <div class="text-danger small">{{ form.composer.errors }}</div>
+                <div class="text-danger small mt-1">{{ form.composer.errors }}</div>
                 {% endif %}
             </div>
         </div>
@@ -112,16 +112,67 @@
         height: 2px;
     }
 
+    /* Fix for composer dropdown visibility */
+    .form-select,
+    select {
+        background-color: var(--apache-dark) !important;
+        color: #ffffff !important;  /* Force white text for maximum visibility */
+        border: 1px solid var(--apache-border) !important;
+        padding: 0.375rem 0.75rem !important;
+        height: auto !important;
+        min-height: 38px !important;
+    }
+
+    /* Dropdown options styling */
+    .form-select option,
+    select option {
+        background-color: var(--apache-surface) !important;
+        color: #ffffff !important;  /* Force white text for options */
+    }
+
+    /* Hover and focus states */
+    .form-select:focus,
+    select:focus,
+    .form-select:hover,
+    select:hover {
+        background-color: var(--apache-dark) !important;
+        color: #ffffff !important;
+        border-color: var(--apache-gold) !important;
+        box-shadow: 0 0 0 0.25rem rgba(218, 165, 32, 0.25) !important;
+    }
+
+    /* Ensure dropdown options are visible on hover/focus */
+    .form-select option:hover,
+    select option:hover {
+        background-color: var(--apache-surface) !important;
+        color: #ffffff !important;
+    }
+
     /* Style for select dropdown in dark theme */
+    .form-select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
+    }
+
+    /* Error message styling */
+    .text-danger {
+        color: #ff6b6b !important;  /* Bright red for errors */
+    }
+
+    /* Form control styling */
+    .form-control,
     .form-select {
         background-color: rgba(255, 255, 255, 0.05) !important;
         border: 1px solid var(--apache-border) !important;
         color: var(--apache-light) !important;
     }
 
-    .form-select option {
-        background-color: var(--apache-dark);
-        color: var(--apache-light);
+    /* Focus styling for form controls */
+    .form-control:focus,
+    .form-select:focus {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        border-color: var(--apache-gold) !important;
+        box-shadow: 0 0 0 0.25rem rgba(218, 165, 32, 0.25) !important;
+        color: var(--apache-light) !important;
     }
 </style>
 {% endblock %}

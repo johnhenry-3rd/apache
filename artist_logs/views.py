@@ -33,7 +33,11 @@ from .models import (
     Composer, Song, Prs_data, PaymentStatement, PaymentPlan,
     UploadHistory, Source, IncomeType
 )
-from .forms import ComposerForm, SongForm  # If using forms
+from .forms import ComposerForm, SongForm
+from django.db import IntegrityError
+from django.shortcuts import render, redirect, get_object_or_404
+from .forms import PaymentStatementForm
+from .models import PaymentStatement
 
 
 # Import models
@@ -576,17 +580,21 @@ def song_detail(request, pk):
         'paid_earnings': paid_earnings,
     })
 
-# artist_logs/views.py
+
+
 def song_create(request):
-    """
-    Create a new song.
-    """
     if request.method == 'POST':
         form = SongForm(request.POST)
         if form.is_valid():
-            song = form.save()
-            messages.success(request, f"Song '{song.title}' created successfully!")
-            return redirect('artist_logs:song_detail', pk=song.pk)
+            try:
+                song = form.save()
+                messages.success(request, f"Song '{song.title}' created successfully!")
+                return redirect('artist_logs:song_detail', pk=song.pk)
+            except IntegrityError as e:
+                if 'unique_song_title_per_composer' in str(e):
+                    form.add_error('title', f"A song with the title '{form.cleaned_data['title']}' already exists for this composer.")
+                else:
+                    messages.error(request, "An error occurred while saving the song.")
     else:
         form = SongForm()
 
@@ -596,16 +604,19 @@ def song_create(request):
     })
 
 def song_edit(request, pk):
-    """
-    Edit an existing song.
-    """
     song = get_object_or_404(Song, pk=pk)
     if request.method == 'POST':
         form = SongForm(request.POST, instance=song)
         if form.is_valid():
-            form.save()
-            messages.success(request, f"Song '{song.title}' updated successfully!")
-            return redirect('artist_logs:song_detail', pk=song.pk)
+            try:
+                form.save()
+                messages.success(request, f"Song '{song.title}' updated successfully!")
+                return redirect('artist_logs:song_detail', pk=song.pk)
+            except IntegrityError as e:
+                if 'unique_song_title_per_composer' in str(e):
+                    form.add_error('title', f"A song with the title '{form.cleaned_data['title']}' already exists for this composer.")
+                else:
+                    messages.error(request, "An error occurred while updating the song.")
     else:
         form = SongForm(instance=song)
 
@@ -1079,7 +1090,7 @@ def create_payment_statement(request):
         if form.is_valid():
             statement = form.save()
             messages.success(request, f"Payment statement '{statement.statement_number}' created successfully!")
-            return redirect('artist_logs:payment_statement_list')
+            return redirect('artist_logs:payment_statement_detail', pk=statement.pk)
     else:
         form = PaymentStatementForm()
 
@@ -1088,7 +1099,7 @@ def create_payment_statement(request):
         'title': 'Create Payment Statement',
     })
 
-from django.contrib import messages
+
 
 def mark_prs_data_as_paid(request, pk):
     """
