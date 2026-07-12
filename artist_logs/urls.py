@@ -20,7 +20,6 @@ urlpatterns = [
     path('payment-statements/create/', views.create_payment_statement, name='create_payment_statement'),
     path('payment-statements/create/', views.create_payment_statement, name='payment_statement_create'),
 
-
     # Song URLs
     path('songs/', views.song_list, name='song_list'),
     path('songs/create/', views.song_create, name='song_create'),
@@ -34,5 +33,15 @@ urlpatterns = [
     path('payment-statements/', views.payment_statement_list, name='payment_statement_list'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('prs-data/<int:pk>/mark-as-paid/', views.mark_prs_data_as_paid, name='mark_as_paid'),
-    path('prs-data/<int:pk>/mark-as-unpaid/', views.mark_prs_data_as_unpaid, name='mark_as_unpaid')
+    path('prs-data/<int:pk>/mark-as-unpaid/', views.mark_prs_data_as_unpaid, name='mark_as_unpaid'),
+    path('clear-prs-data/', views.clear_prs_data, name='clear_prs_data'),
+
+# Backup/Restore URLs
+    path('backup-database/', views.backup_database, name='backup_database'),
+    path('restore-database/', views.restore_database, name='restore_database'),
+    path('backup-list/', views.backup_list, name='backup_list'),  # <-- Add this
+    path('verify-backup/<str:filename>/', views.verify_backup, name='verify_backup'),  # <-- Add this
+    path('download-backup/<str:filename>/', views.download_backup, name='download_backup'),  # <-- Add this
+    path('delete-backup/<str:filename>/', views.delete_backup, name='delete_backup'),  # <-- Add this
+    path('clear-prs-data/', views.clear_prs_data, name='clear_prs_data'),
 ]

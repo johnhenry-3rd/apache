@@ -1,8 +1,10 @@
+# artist_logs/models.py
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.utils import timezone
 import re
 import datetime
+import re
 
 # =============================================
 # Base Models (No Dependencies)
@@ -80,6 +82,8 @@ class IncomeType(models.Model):
 # Composer Model (Core Model)
 # =============================================
 
+
+
 class Composer(models.Model):
     """
     Reference table for composers/artists.
@@ -91,7 +95,8 @@ class Composer(models.Model):
     - Payment threshold (£100 default)
     - Status (active/inactive)
     """
-    # Unique identifiers
+
+    # --- Unique Identifiers ---
     composer_id = models.CharField(
         max_length=50,
         unique=True,
@@ -99,6 +104,8 @@ class Composer(models.Model):
         null=True,
         help_text="Unique identifier for the composer (auto-generated)"
     )
+
+    # --- Name Fields ---
     full_name = models.CharField(
         max_length=255,
         unique=True,
@@ -115,7 +122,7 @@ class Composer(models.Model):
         help_text="Last name of the composer"
     )
 
-    # Contact information
+    # --- Contact Information ---
     email = models.EmailField(
         blank=True,
         null=True,
@@ -133,7 +140,7 @@ class Composer(models.Model):
         help_text="Postal address for the composer"
     )
 
-    # Financial details
+    # --- Financial Details ---
     bank_account_number = models.CharField(
         max_length=50,
         blank=True,
@@ -169,7 +176,7 @@ class Composer(models.Model):
         help_text="Minimum amount (£) before payment is issued"
     )
 
-    # Status and metadata
+    # --- Status and Metadata ---
     is_active = models.BooleanField(
         default=True,
         help_text="Whether the composer is active"
@@ -188,14 +195,17 @@ class Composer(models.Model):
         help_text="When this composer record was last updated"
     )
 
+    # --- Model Metadata ---
     class Meta:
         ordering = ['last_name', 'first_name']
         verbose_name = "Composer"
         verbose_name_plural = "Composers"
 
+    # --- String Representation ---
     def __str__(self):
         return self.full_name
 
+    # --- Save Method: Auto-generate composer_id and populate first_name/last_name ---
     def save(self, *args, **kwargs):
         """
         Auto-generate composer_id and populate first_name/last_name from full_name.
@@ -222,6 +232,7 @@ class Composer(models.Model):
 
         super().save(*args, **kwargs)
 
+    # --- Class Method: Find or Create by Name ---
     @classmethod
     def find_or_create_by_name(cls, name):
         """
@@ -345,6 +356,13 @@ class Song(models.Model):
         Custom save method to handle composer linking.
         """
         super().save(*args, **kwargs)
+    
+    def total_earnings(self):
+        """
+        Calculate the total earnings for this song from its PRS data.
+        Uses royalty_payable as the earnings amount.
+        """
+        return sum(prs.royalty_payable for prs in self.prs_records.all())
 
 # =============================================
 # Payment Statement Model
@@ -843,6 +861,12 @@ class PaymentPlan(models.Model):
 # Upload History Model
 # =============================================
 
+# artist_logs/models.py
+from django.db import models
+from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import InMemoryUploadedFile
+import hashlib
+
 class UploadHistory(models.Model):
     """
     Model to track CSV file uploads and prevent duplicates.
@@ -857,9 +881,20 @@ class UploadHistory(models.Model):
         unique=True,
         help_text="MD5 hash of the file content for duplicate detection"
     )
+    file_path = models.CharField(
+        max_length=512,  # Increased length for file paths
+        blank=True,
+        null=True,
+        help_text="Path to temporary file for AJAX uploads"
+    )
     uploaded_at = models.DateTimeField(
         auto_now_add=True,
         help_text="When the file was uploaded"
+    )
+    processed_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="When the file was processed"
     )
     records_imported = models.IntegerField(
         default=0,
@@ -867,13 +902,15 @@ class UploadHistory(models.Model):
     )
     status = models.CharField(
         max_length=50,
-        default="Success",
+        default="Pending",  # Changed default to support AJAX workflow
         choices=[
+            ('Pending', 'Pending'),
+            ('Processing', 'Processing'),
             ('Success', 'Success'),
             ('Failed', 'Failed'),
             ('Partial', 'Partial'),
         ],
-        help_text="Status of the upload (Success/Failed/Partial)"
+        help_text="Status of the upload (Pending/Processing/Success/Failed/Partial)"
     )
     error_message = models.TextField(
         blank=True,
@@ -901,9 +938,6 @@ class UploadHistory(models.Model):
         Returns:
             bool: True if the file has been uploaded before, False otherwise
         """
-        from django.core.files.uploadedfile import InMemoryUploadedFile
-        import hashlib
-
         try:
             # Read the file content and compute its hash
             if isinstance(file, InMemoryUploadedFile):
@@ -924,3 +958,36 @@ class UploadHistory(models.Model):
             print(f"Error checking file hash: {str(e)}")
             return False
 
+    def clean_up_temp_file(self):
+        """
+        Clean up the temporary file if it exists.
+        """
+        if self.file_path and default_storage.exists(self.file_path):
+            try:
+                default_storage.delete(self.file_path)
+                self.file_path = ''
+                self.save(update_fields=['file_path'])
+                return True
+            except Exception as e:
+                print(f"Error deleting temporary file {self.file_path}: {str(e)}")
+                return False
+        return True
+
+    def get_status_badge_color(self):
+        """
+        Return the Bootstrap badge color for the status.
+        """
+        status_colors = {
+            'Pending': 'secondary',
+            'Processing': 'primary',
+            'Success': 'success',
+            'Failed': 'danger',
+            'Partial': 'warning',
+        }
+        return status_colors.get(self.status, 'secondary')
+
+    def get_status_display(self):
+        """
+        Return the human-readable status.
+        """
+        return dict(self._meta.get_field('status').choices).get(self.status, self.status)

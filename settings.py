@@ -8,3 +8,5 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'artist_logs',  # Add this line
 ]
+
+BACKUP_DIR = os.path.join(BASE_DIR, 'backups')

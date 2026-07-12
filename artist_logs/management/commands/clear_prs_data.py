@@ -17,7 +17,7 @@ class Command(BaseCommand):
         dry_run = options['dry_run']
 
         self.stdout.write(self.style.WARNING('⚠️  This command will delete ALL PRS data and upload history!'))
-        self.stdout.write(self.style.WARNING('✅ Composers and Songs will be preserved.'))
+        self.stdout.write(self.style.SUCCESS('✅ Composers and Songs will be preserved.'))
 
         # Count records to be deleted
         prs_count = Prs_data.objects.count()
@@ -40,14 +40,14 @@ class Command(BaseCommand):
         # Delete in a transaction to ensure atomicity
         try:
             with transaction.atomic():
-                # Delete all PRS data
+                # Delete ONLY PRS data and upload history
                 prs_deleted = Prs_data.objects.all().delete()[0]
-                # Delete all upload history
                 upload_deleted = UploadHistory.objects.all().delete()[0]
 
                 self.stdout.write(self.style.SUCCESS('\n✅ Successfully deleted:'))
                 self.stdout.write(self.style.SUCCESS(f'  - {prs_deleted} PRS data records'))
                 self.stdout.write(self.style.SUCCESS(f'  - {upload_deleted} upload history records'))
+                self.stdout.write(self.style.SUCCESS('\n✅ Composers and Songs were PRESERVED.'))
 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'\n❌ Error: {str(e)}'))

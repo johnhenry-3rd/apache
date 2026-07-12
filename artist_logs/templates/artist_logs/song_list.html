@@ -259,8 +259,36 @@
     }
 
     .form-select option {
-        background-color: var(--apache-dark);
-        color: var(--apache-light);
+        background-color: var(--apache-dark) !important;
+        color: var(--apache-light) !important;
+    }
+
+    /* Fix for action buttons spacing */
+    .action-buttons {
+        display: flex;
+        gap: 0.25rem;
     }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-submit form when dropdowns change
+    document.addEventListener('DOMContentLoaded', function() {
+        const composerDropdown = document.getElementById('composer');
+        const hasComposerDropdown = document.getElementById('has_composer');
+
+        if (composerDropdown) {
+            composerDropdown.addEventListener('change', function() {
+                this.form.submit();
+            });
+        }
+
+        if (hasComposerDropdown) {
+            hasComposerDropdown.addEventListener('change', function() {
+                this.form.submit();
+            });
+        }
+    });
+</script>
 {% endblock %}

@@ -2,27 +2,33 @@
 
 {% block extra_css %}
 <style>
-    /* --- Existing Styles --- */
+    /* Main Container */
     .prs-admin-container {
         padding: 20px;
         color: var(--apache-light);
     }
+
+    /* Header */
     .prs-admin-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 30px;
     }
+
     .prs-admin-title {
         font-size: 1.8rem;
         color: var(--apache-gold);
     }
+
+    /* Stats Cards */
     .prs-admin-stats {
         display: flex;
         gap: 20px;
         margin-bottom: 30px;
         flex-wrap: wrap;
     }
+
     .stat-card {
         background-color: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -31,18 +37,22 @@
         min-width: 200px;
         flex: 1;
     }
+
     .stat-card h3 {
         color: rgba(255, 255, 255, 0.7);
         font-size: 0.9rem;
         margin: 0 0 10px;
         text-transform: uppercase;
     }
+
     .stat-card p {
         color: var(--apache-gold);
         font-size: 2rem;
         margin: 0;
         font-weight: 700;
     }
+
+    /* Upload Section */
     .upload-section {
         background-color: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -50,25 +60,30 @@
         padding: 30px;
         margin-bottom: 30px;
     }
+
     .upload-title {
         color: var(--apache-gold);
         margin-bottom: 15px;
         font-size: 1.2rem;
     }
+
     .upload-instructions {
         color: rgba(255, 255, 255, 0.7);
         margin-bottom: 20px;
     }
+
     .file-upload-form {
         display: flex;
         flex-direction: column;
         gap: 15px;
     }
+
     .file-input-container {
         display: flex;
         align-items: center;
         gap: 10px;
     }
+
     .file-input-label {
         background-color: var(--apache-gold);
         color: var(--apache-dark);
@@ -77,16 +92,26 @@
         cursor: pointer;
         font-weight: 600;
     }
+
     .file-input-label:hover {
         background-color: var(--apache-gold-light);
     }
+
     #csv_file {
         display: none;
     }
+
     .file-name {
         color: rgba(255, 255, 255, 0.8);
         font-style: italic;
     }
+
+    .file-name.has-file {
+        color: rgba(255, 255, 255, 0.9);
+        font-style: normal;
+        font-weight: 500;
+    }
+
     .upload-button {
         background-color: var(--apache-gold);
         color: var(--apache-dark);
@@ -97,11 +122,136 @@
         font-weight: 600;
         align-self: flex-start;
     }
+
     .upload-button:hover {
         background-color: var(--apache-gold-light);
     }
 
-    /* --- Payment Tracking Styles --- */
+    .upload-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Progress Bar */
+    #progressContainer {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        border: 1px dashed rgba(255, 255, 255, 0.1);
+        display: none;
+    }
+
+    .progress {
+        height: 20px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+
+    #progressBar {
+        height: 100%;
+        background-color: var(--apache-gold);
+        transition: width 0.3s ease;
+    }
+
+    #progressPercent {
+        font-size: 0.9rem;
+        color: var(--apache-light);
+        font-weight: 600;
+        text-align: right;
+    }
+
+    /* Status Messages */
+    #statusMessage {
+        min-height: 24px;
+        margin-top: 10px;
+        font-size: 0.9rem;
+    }
+
+    .upload-success {
+        color: var(--apache-gold);
+        font-weight: 600;
+    }
+
+    .upload-error {
+        color: #ff6b6b;
+        font-weight: 600;
+    }
+
+    .upload-info {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Preview Table */
+    #previewContainer {
+        margin-top: 20px;
+        display: none;
+    }
+
+    .preview-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+
+    .preview-table th,
+    .preview-table td {
+        padding: 8px 12px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 0.85rem;
+    }
+
+    .preview-table th {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: var(--apache-gold);
+        font-weight: 600;
+    }
+
+    .preview-table tr:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Disable form during upload */
+    .form-disabled {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    /* Cancel Button */
+    #cancelButton {
+        margin-top: 10px;
+        padding: 6px 12px;
+        background-color: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+        border: 1px solid #dc3545;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        width: 100%;
+    }
+
+    #cancelButton:hover {
+        background-color: rgba(220, 53, 69, 0.4);
+    }
+
+    /* Testing Buttons */
+    .testing-buttons {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        border: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+
+    .testing-buttons .btn {
+        margin-right: 10px;
+        margin-bottom: 10px;
+    }
+
+    /* Payment Section */
     .payment-section {
         background-color: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -109,6 +259,7 @@
         padding: 30px;
         margin-bottom: 30px;
     }
+
     .payment-title {
         color: var(--apache-gold);
         margin-bottom: 15px;
@@ -117,12 +268,14 @@
         justify-content: space-between;
         align-items: center;
     }
+
     .payment-form {
         display: flex;
         flex-direction: column;
         gap: 15px;
         max-width: 500px;
     }
+
     .payment-button {
         background-color: var(--apache-gold);
         color: var(--apache-dark);
@@ -133,9 +286,11 @@
         font-weight: 600;
         align-self: flex-start;
     }
+
     .payment-button:hover {
         background-color: var(--apache-gold-light);
     }
+
     .payment-status {
         display: inline-block;
         padding: 4px 8px;
@@ -143,26 +298,32 @@
         font-size: 0.85rem;
         font-weight: 600;
     }
+
     .status-paid {
         background-color: rgba(40, 167, 69, 0.2);
         color: #28a745;
     }
+
     .status-unpaid {
         background-color: rgba(220, 53, 69, 0.2);
         color: #dc3545;
     }
+
     .status-draft {
         background-color: rgba(255, 193, 7, 0.2);
         color: #ffc107;
     }
+
     .status-finalized {
         background-color: rgba(0, 123, 255, 0.2);
         color: #007bff;
     }
+
     .action-buttons {
         display: flex;
         gap: 10px;
     }
+
     .action-button {
         padding: 6px 12px;
         border-radius: 4px;
@@ -170,20 +331,24 @@
         cursor: pointer;
         border: none;
     }
+
     .mark-paid-button {
         background-color: #28a745;
         color: white;
     }
+
     .mark-unpaid-button {
         background-color: #dc3545;
         color: white;
     }
+
     .view-all-link {
         color: var(--apache-gold);
         text-decoration: none;
         margin-top: 10px;
         display: inline-block;
     }
+
     .view-all-link:hover {
         text-decoration: underline;
     }
@@ -194,17 +359,20 @@
         border-collapse: collapse;
         color: var(--apache-light);
     }
+
     .imports-table th,
     .imports-table td {
         padding: 12px 15px;
         text-align: left;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
+
     .imports-table th {
         background-color: rgba(255, 255, 255, 0.05);
         color: var(--apache-gold);
         font-weight: 600;
     }
+
     .imports-table tr:hover {
         background-color: rgba(255, 255, 255, 0.05);
     }
@@ -216,40 +384,52 @@
         font-size: 0.8rem;
         font-weight: 600;
     }
+
     .status-success {
         background-color: rgba(40, 167, 69, 0.2);
         color: #28a745;
     }
+
     .status-failed {
         background-color: rgba(220, 53, 69, 0.2);
         color: #dc3545;
+    }
+
+    .status-pending {
+        background-color: rgba(0, 123, 255, 0.2);
+        color: #007bff;
     }
 
     /* Messages */
     .messages {
         margin-bottom: 20px;
     }
+
     .message {
         padding: 10px 15px;
         margin-bottom: 10px;
         border-radius: 4px;
         font-size: 0.9rem;
     }
+
     .message-info {
         background-color: rgba(0, 123, 255, 0.2);
         color: #007bff;
         border: 1px solid #007bff;
     }
+
     .message-success {
         background-color: rgba(40, 167, 69, 0.2);
         color: #28a745;
         border: 1px solid #28a745;
     }
+
     .message-warning {
         background-color: rgba(255, 193, 7, 0.2);
         color: #ffc107;
         border: 1px solid #ffc107;
     }
+
     .message-error {
         background-color: rgba(220, 53, 69, 0.2);
         color: #dc3545;
@@ -305,21 +485,91 @@
         </div>
     </div>
 
-    <!-- CSV Upload Section -->
+    <!-- CSV Upload Section with Progress Bar -->
     <div class="upload-section">
         <h2 class="upload-title">Upload PRS CSV File</h2>
         <p class="upload-instructions">
             Upload a CSV file containing PRS data. Duplicate files will be rejected.
         </p>
-        <form method="post" enctype="multipart/form-data" class="file-upload-form">
+        <form id="csvUploadForm" method="post" enctype="multipart/form-data" class="file-upload-form">
             {% csrf_token %}
             <div class="file-input-container">
                 <label for="csv_file" class="file-input-label">Choose CSV File</label>
                 <span id="file-name" class="file-name">No file chosen</span>
             </div>
             <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
-            <button type="submit" class="upload-button">Upload CSV</button>
+            <button type="submit" class="upload-button" id="uploadButton">
+                <i class="fas fa-upload me-1"></i> Upload CSV
+            </button>
+
+            <!-- Progress Container -->
+            <div id="progressContainer">
+                <div class="d-flex justify-content-between mb-2">
+                    <span><i class="fas fa-spinner fa-spin me-2"></i>Uploading...</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress">
+                    <div id="progressBar" class="progress-bar" role="progressbar"
+                         style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                    </div>
+                </div>
+                <div class="text-center mt-2">
+                    <button type="button" class="btn btn-sm" id="cancelButton">
+                        <i class="fas fa-times me-1"></i> Cancel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Message -->
+            <div id="statusMessage" class="mt-2"></div>
+
+            <!-- Preview Container -->
+            <div id="previewContainer">
+                <div class="alert alert-info mt-3" style="color: rgba(255, 255, 255, 0.8);">
+                    <i class="fas fa-table me-2"></i> Preview of the first 5 rows:
+                </div>
+                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                    <table class="preview-table">
+                        <thead>
+                            <tr id="previewHeaders"></tr>
+                        </thead>
+                        <tbody id="previewBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </form>
+
+        <!-- Testing Buttons -->
+        <div class="testing-buttons">
+            <div class="d-flex flex-wrap gap-2 mb-2">
+                <!-- Clear PRS Data & History Button -->
+                <form method="post" action="{% url 'artist_logs:clear_prs_data' %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm"
+                            onclick="return confirm('⚠️ WARNING: This will delete ALL PRS data and upload history. ✅ Composers and Songs will be PRESERVED. This cannot be undone! Are you sure?')">
+                        <i class="fas fa-trash me-1"></i> Clear PRS Data & History
+                    </button>
+                </form>
+
+                <!-- Backup Database Button -->
+                <form method="post" action="{% url 'artist_logs:backup_database' %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary btn-sm"
+                            onclick="return confirm('Create a backup of all PRS data? This will save the current state of your database.')">
+                        <i class="fas fa-save me-1"></i> Backup Database
+                    </button>
+                </form>
+
+                <!-- View Backups Button -->
+                <a href="{% url 'artist_logs:backup_list' %}" class="btn btn-info btn-sm">
+                    <i class="fas fa-list me-1"></i> View Backups
+                </a>
+            </div>
+            <div class="form-text">
+                <i class="fas fa-info-circle me-1"></i>
+                Testing tools: Clear data preserves Composers/Songs. Backup creates a snapshot of your current data.
+            </div>
+        </div>
     </div>
 
     <!-- Payment Statements Section -->
@@ -352,14 +602,14 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for statement in payment_statements|slice:":5" %}
+                    {% for statement in payment_statements %}
                     <tr>
                         <td>{{ statement.statement_number }}</td>
                         <td>{{ statement.start_period }} - {{ statement.end_period }}</td>
                         <td>{{ statement.statement_date }}</td>
                         <td>£{{ statement.total_amount|floatformat:2 }}</td>
                         <td>
-                            <span class="status-badge status-{{ statement.status }}">
+                            <span class="status-badge status-{{ statement.status|lower }}">
                                 {{ statement.get_status_display }}
                             </span>
                         </td>
@@ -406,7 +656,7 @@
                     <td>{{ upload.uploaded_at|date:"Y-m-d H:i" }}</td>
                     <td>{{ upload.records_imported }}</td>
                     <td>
-                        <span class="status-badge {% if upload.status == 'Success' %}status-success{% else %}status-failed{% endif %}">
+                        <span class="status-badge status-{{ upload.status|lower }}">
                             {{ upload.status }}
                         </span>
                     </td>
@@ -476,10 +726,356 @@
 
 {% block extra_js %}
 <script>
-    // Update file name display when a file is selected
-    document.getElementById('csv_file').addEventListener('change', function(e) {
-        const fileName = e.target.files[0] ? e.target.files[0].name : 'No file chosen';
-        document.getElementById('file-name').textContent = fileName;
-    });
+// Get CSRF token from cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Get all the elements we need
+    const fileInput = document.getElementById('csv_file');
+    const fileNameDisplay = document.getElementById('file-name');
+    const form = document.getElementById('csvUploadForm');
+    const uploadButton = document.getElementById('uploadButton');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressPercent = document.getElementById('progressPercent');
+    const statusMessage = document.getElementById('statusMessage');
+    const cancelButton = document.getElementById('cancelButton');
+    const previewContainer = document.getElementById('previewContainer');
+
+    // Initialize progress container as hidden
+    if (progressContainer) {
+        progressContainer.style.display = 'none';
+    }
+
+    // Initialize preview container as hidden
+    if (previewContainer) {
+        previewContainer.style.display = 'none';
+    }
+
+    let currentRequest = null;
+
+    // Update file name when file is selected
+    if (fileInput && fileNameDisplay) {
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files[0]) {
+                const fileName = e.target.files[0].name;
+                const fileSize = formatFileSize(e.target.files[0].size);
+                fileNameDisplay.textContent = `${fileName} (${fileSize})`;
+                fileNameDisplay.className = 'file-name has-file';
+
+                // Clear any previous status messages and preview
+                if (statusMessage) {
+                    statusMessage.innerHTML = '';
+                    statusMessage.className = '';
+                }
+                if (previewContainer) {
+                    previewContainer.style.display = 'none';
+                }
+            } else {
+                fileNameDisplay.textContent = 'No file chosen';
+                fileNameDisplay.className = 'file-name';
+            }
+        });
+    }
+
+    // Handle form submission
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Check if a file is selected
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                if (statusMessage) {
+                    statusMessage.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Please select a file first';
+                    statusMessage.className = 'upload-error';
+                }
+                return false;
+            }
+
+            // Disable upload button during upload
+            if (uploadButton) {
+                uploadButton.disabled = true;
+            }
+
+            // Disable form during upload
+            form.classList.add('form-disabled');
+
+            // Show progress container
+            if (progressContainer) {
+                progressContainer.style.display = 'block';
+            }
+
+            // Reset progress bar
+            if (progressBar) {
+                progressBar.style.width = '0%';
+            }
+            if (progressPercent) {
+                progressPercent.textContent = '0%';
+            }
+
+            // Show initial status
+            if (statusMessage) {
+                statusMessage.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Checking file...';
+                statusMessage.className = 'upload-info';
+            }
+
+            // Create FormData object
+            const formData = new FormData(form);
+
+            // Create new XMLHttpRequest
+            currentRequest = new XMLHttpRequest();
+
+            // Configure the request
+            currentRequest.open('POST', window.location.href, true);
+            currentRequest.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            currentRequest.setRequestHeader('X-CSRFToken', csrftoken);
+
+            // Track upload progress
+            currentRequest.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable && progressBar && progressPercent) {
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = percentComplete + '%';
+                    progressPercent.textContent = percentComplete + '%';
+                }
+            });
+
+            // Handle successful upload
+            currentRequest.addEventListener('load', function() {
+                if (uploadButton) {
+                    uploadButton.disabled = false;
+                }
+
+                if (currentRequest.status === 200) {
+                    try {
+                        const response = JSON.parse(currentRequest.responseText);
+
+                        if (response.success) {
+                            // Success case
+                            if (statusMessage) {
+                                statusMessage.innerHTML = `<i class="fas fa-check-circle me-2"></i>${response.message}`;
+                                statusMessage.className = 'upload-success';
+                            }
+
+                            // Show preview if available
+                            if (response.preview && response.preview.length > 0 && previewContainer) {
+                                showPreview(response.preview);
+                            }
+
+                            // Reset form but DON'T auto-reload
+                            if (form) form.reset();
+                            if (fileNameDisplay) {
+                                fileNameDisplay.textContent = 'No file chosen';
+                                fileNameDisplay.className = 'file-name';
+                            }
+                            if (progressContainer) {
+                                progressContainer.style.display = 'none';
+                            }
+
+                            // Show a refresh button to manually reload
+                            if (statusMessage) {
+                                const refreshBtn = document.createElement('button');
+                                refreshBtn.className = 'btn btn-sm btn-gold mt-2';
+                                refreshBtn.innerHTML = '<i class="fas fa-sync me-1"></i> Refresh to see changes';
+                                refreshBtn.onclick = function() {
+                                    window.location.reload();
+                                };
+                                statusMessage.appendChild(refreshBtn);
+                            }
+
+                        } else {
+                            // Error case (including duplicate files)
+                            if (statusMessage) {
+                                statusMessage.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i>${response.message}`;
+
+                                // Add a try again button for duplicate files
+                                if (response.message.includes("already been uploaded")) {
+                                    const tryAgainBtn = document.createElement('button');
+                                    tryAgainBtn.className = 'btn btn-sm btn-light mt-2';
+                                    tryAgainBtn.innerHTML = '<i class="fas fa-redo me-1"></i> Choose Different File';
+                                    tryAgainBtn.onclick = function() {
+                                        if (fileInput) {
+                                            fileInput.value = '';
+                                            fileNameDisplay.textContent = 'No file chosen';
+                                            fileNameDisplay.className = 'file-name';
+                                        }
+                                        if (statusMessage) {
+                                            statusMessage.innerHTML = '';
+                                            statusMessage.className = '';
+                                        }
+                                        if (progressContainer) {
+                                            progressContainer.style.display = 'none';
+                                        }
+                                    };
+                                    statusMessage.appendChild(tryAgainBtn);
+                                }
+                                statusMessage.className = 'upload-error';
+                            }
+                            // Hide progress container on error
+                            if (progressContainer) {
+                                progressContainer.style.display = 'none';
+                            }
+                        }
+                    } catch (e) {
+                        // JSON parse error
+                        if (statusMessage) {
+                            statusMessage.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error parsing server response';
+                            statusMessage.className = 'upload-error';
+                        }
+                        if (progressContainer) {
+                            progressContainer.style.display = 'none';
+                        }
+                        console.error("Error parsing response:", e);
+                    }
+                } else {
+                    // HTTP error (like 400 Bad Request)
+                    if (statusMessage) {
+                        let errorMessage = 'An unknown error occurred';
+                        try {
+                            const errorResponse = JSON.parse(currentRequest.responseText);
+                            errorMessage = errorResponse.message || errorMessage;
+                        } catch (e) {
+                            errorMessage = currentRequest.statusText || errorMessage;
+                        }
+
+                        statusMessage.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i>${errorMessage}`;
+
+                        // Add a try again button for duplicate files
+                        if (errorMessage.includes("already been uploaded")) {
+                            const tryAgainBtn = document.createElement('button');
+                            tryAgainBtn.className = 'btn btn-sm btn-light mt-2';
+                            tryAgainBtn.innerHTML = '<i class="fas fa-redo me-1"></i> Choose Different File';
+                            tryAgainBtn.onclick = function() {
+                                if (fileInput) {
+                                    fileInput.value = '';
+                                    fileNameDisplay.textContent = 'No file chosen';
+                                    fileNameDisplay.className = 'file-name';
+                                }
+                                if (statusMessage) {
+                                    statusMessage.innerHTML = '';
+                                    statusMessage.className = '';
+                                }
+                                if (progressContainer) {
+                                    progressContainer.style.display = 'none';
+                                }
+                            };
+                            statusMessage.appendChild(tryAgainBtn);
+                        }
+                        statusMessage.className = 'upload-error';
+                    }
+                    if (progressContainer) {
+                        progressContainer.style.display = 'none';
+                    }
+                    console.error("Upload failed with status:", currentRequest.status, currentRequest.responseText);
+                }
+
+                // Re-enable the form in all cases
+                form.classList.remove('form-disabled');
+            });
+
+            // Handle upload errors (network errors)
+            currentRequest.addEventListener('error', function() {
+                if (uploadButton) {
+                    uploadButton.disabled = false;
+                }
+                form.classList.remove('form-disabled');
+                if (statusMessage) {
+                    statusMessage.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Upload failed. Please try again.';
+                    statusMessage.className = 'upload-error';
+                }
+                if (progressContainer) {
+                    progressContainer.style.display = 'none';
+                }
+                console.error("Upload error occurred");
+            });
+
+            // Handle cancel button
+            if (cancelButton) {
+                cancelButton.onclick = function() {
+                    if (currentRequest) {
+                        currentRequest.abort();
+                        if (statusMessage) {
+                            statusMessage.innerHTML = '<i class="fas fa-ban me-2"></i>Upload cancelled';
+                            statusMessage.className = 'upload-error';
+                        }
+                        if (uploadButton) {
+                            uploadButton.disabled = false;
+                        }
+                        form.classList.remove('form-disabled');
+                        if (progressContainer) {
+                            progressContainer.style.display = 'none';
+                        }
+                    }
+                };
+            }
+
+            // Send the request
+            currentRequest.send(formData);
+        });
+    }
+
+    // Helper function to show preview
+    function showPreview(previewData) {
+        if (!previewContainer) return;
+
+        const headers = previewData[0];
+        const rows = previewData.slice(1);
+
+        // Clear previous preview
+        const previewHeaders = document.getElementById('previewHeaders');
+        const previewBody = document.getElementById('previewBody');
+
+        if (previewHeaders) previewHeaders.innerHTML = '';
+        if (previewBody) previewBody.innerHTML = '';
+
+        // Add headers
+        if (previewHeaders && headers) {
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                previewHeaders.appendChild(th);
+            });
+        }
+
+        // Add rows (limit to 5 for preview)
+        if (previewBody && rows) {
+            rows.slice(0, 5).forEach(row => {
+                const tr = document.createElement('tr');
+                row.forEach(cell => {
+                    const td = document.createElement('td');
+                    td.textContent = cell;
+                    tr.appendChild(td);
+                });
+                previewBody.appendChild(tr);
+            });
+        }
+
+        // Show preview container
+        previewContainer.style.display = 'block';
+    }
+
+    // Helper function to format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+});
 </script>
 {% endblock %}

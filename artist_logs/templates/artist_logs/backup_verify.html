@@ -1,0 +1,67 @@
+{% extends 'artist_logs/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Backup Verification: {{ filename }}</h2>
+        <a href="{% url 'artist_logs:backup_list' %}" class="btn btn-outline-light">
+            <i class="fas fa-arrow-left me-1"></i> Back to Backups
+        </a>
+    </div>
+
+    <div class="card bg-dark mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Backup Details</h5>
+            <p class="card-text">
+                Backup created: {{ backup_date }}
+                <br><small class="text-muted">Method: {{ backup_method|default:"unknown" }}</small>
+            </p>
+
+            {% if counts %}
+            <h5 class="card-title mt-3">Record Counts</h5>
+            <div class="table-responsive">
+                <table class="table table-striped table-dark">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Record Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for model, count in counts.items %}
+                        <tr>
+                            <td>{{ model|title }}</td>
+                            <td>{{ count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info mt-3">
+                No record counts available for this backup.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="alert alert-warning">
+        <strong>⚠️ Warning:</strong> Restoring from this backup will <strong>overwrite all current data</strong> in your database.
+        This action cannot be undone.
+    </div>
+
+    <div class="mt-4">
+        <form method="post" action="{% url 'artist_logs:restore_database' %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="backup_filename" value="{{ filename }}">
+            <button type="submit" class="btn btn-success btn-lg"
+                    onclick="return confirm('⚠️ Are you ABSOLUTELY SURE you want to restore from this backup? All current data will be LOST!')">
+                <i class="fas fa-undo me-2"></i> Restore Database from This Backup
+            </button>
+        </form>
+        <a href="{% url 'artist_logs:backup_list' %}" class="btn btn-secondary btn-lg ms-3">
+            <i class="fas fa-arrow-left me-2"></i> Cancel
+        </a>
+    </div>
+</div>
+{% endblock %}
