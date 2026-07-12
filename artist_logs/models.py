@@ -260,14 +260,13 @@ class Composer(models.Model):
 
         return composer
 
-# =============================================
-# Song Model (Depends on Composer)
-# =============================================
+from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Song(models.Model):
     """
     Model representing a song with a unique code.
-    Each song has exactly one composer (ForeignKey to Composer).
+    Each song can have multiple composers with royalty splits.
     """
     code = models.CharField(
         max_length=20,
@@ -311,14 +310,14 @@ class Song(models.Model):
         help_text="License number for the song"
     )
 
-    # One composer per song (ForeignKey to Composer)
+    # Legacy composer field (kept for backward compatibility)
     composer = models.ForeignKey(
-        Composer,
+        'Composer',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='songs',
-        help_text="The composer of this song (each song has exactly one composer)"
+        help_text="Legacy: The primary composer of this song (for backward compatibility)"
     )
 
     created_at = models.DateTimeField(
@@ -330,19 +329,14 @@ class Song(models.Model):
         help_text="When this song was last updated"
     )
 
-
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields=['code'],
                 name='unique_song_code',
                 condition=models.Q(code__isnull=False)
-            ),
-            models.UniqueConstraint(
-                fields=['composer', 'title'],
-                name='unique_song_title_per_composer',
-                condition=models.Q(composer__isnull=False)
             )
+            # Removed the unique_song_title_per_composer constraint as it's no longer needed
         ]
         verbose_name = "Song"
         verbose_name_plural = "Songs"
@@ -353,16 +347,188 @@ class Song(models.Model):
 
     def save(self, *args, **kwargs):
         """
-        Custom save method to handle composer linking.
+        Custom save method.
+        If this is a new song and no composer is set, but there are SongComposer relationships,
+        set the primary composer to the first one for backward compatibility.
         """
-        super().save(*args, **kwargs)
-    
+        if not self.pk:  # New song being created
+            super().save(*args, **kwargs)
+            # If no legacy composer is set, but we have SongComposer relationships,
+            # set the first one as the legacy composer
+            if not self.composer and hasattr(self, 'song_composers') and self.song_composers.exists():
+                first_composer = self.song_composers.first().composer
+                self.composer = first_composer
+                super().save(update_fields=['composer'])
+        else:
+            super().save(*args, **kwargs)
+
     def total_earnings(self):
         """
         Calculate the total earnings for this song from its PRS data.
         Uses royalty_payable as the earnings amount.
         """
         return sum(prs.royalty_payable for prs in self.prs_records.all())
+
+    # ====================
+    # Composer Relationships
+    # ====================
+
+    @property
+    def composers(self):
+        """
+        Returns all composers for this song via the SongComposer relationship.
+        """
+        return [sc.composer for sc in self.song_composers.all()]
+
+    @property
+    def composer_names(self):
+        """
+        Returns a string of all composer names for this song.
+        """
+        return ", ".join([c.full_name for c in self.composers])
+
+    @property
+    def has_multiple_composers(self):
+        """
+        Returns True if this song has more than one composer.
+        """
+        return self.song_composers.count() > 1
+
+    @property
+    def total_split_percentage(self):
+        """
+        Returns the total split percentage for this song.
+        """
+        return self.song_composers.aggregate(
+            total=models.Sum('split_percentage')
+        )['total'] or 0
+
+    def get_composer_splits(self):
+        """
+        Returns a list of tuples: (composer, split_percentage)
+        """
+        return [(sc.composer, sc.split_percentage) for sc in self.song_composers.all()]
+
+    def add_composer(self, composer, split_percentage=100.0, notes=""):
+        """
+        Add a composer to this song with a split percentage.
+        If this is the first composer, also set as the legacy composer.
+        """
+        from .models import SongComposer
+
+        # Create the SongComposer relationship
+        song_composer = SongComposer.objects.create(
+            song=self,
+            composer=composer,
+            split_percentage=split_percentage,
+            notes=notes
+        )
+
+        # If this is the first composer, set as legacy composer
+        if not self.composer:
+            self.composer = composer
+            self.save(update_fields=['composer'])
+
+        return song_composer
+
+    def set_composers(self, composer_splits):
+        """
+        Set all composers for this song with their split percentages.
+        composer_splits: List of tuples (composer, split_percentage)
+
+        Example:
+        song.set_composers([
+            (composer1, 60.0),
+            (composer2, 40.0)
+        ])
+        """
+        from .models import SongComposer
+
+        # Clear existing composers
+        self.song_composers.all().delete()
+
+        # Add new composers
+        for composer, percentage in composer_splits:
+            self.add_composer(composer, percentage)
+
+        # Set the first composer as the legacy composer
+        if self.song_composers.exists():
+            self.composer = self.song_composers.first().composer
+            self.save(update_fields=['composer'])
+
+    def distribute_royalties(self, amount):
+        """
+        Distribute an amount among the song's composers based on their split percentages.
+        Returns a list of tuples: (composer, amount)
+        """
+        if not self.song_composers.exists():
+            return []
+
+        total_percentage = self.total_split_percentage
+        if total_percentage == 0:
+            return []
+
+        distributions = []
+        for sc in self.song_composers.all():
+            composer_amount = (amount * sc.split_percentage) / 100
+            distributions.append((sc.composer, composer_amount))
+
+        return distributions
+    
+class SongComposer(models.Model):
+    """
+    Intermediate model to handle multiple composers per song with royalty splits.
+    This allows a song to have multiple composers, each with their own percentage of royalties.
+    """
+    song = models.ForeignKey(
+        Song,
+        on_delete=models.CASCADE,
+        related_name='song_composers'
+    )
+    composer = models.ForeignKey(
+        'Composer',
+        on_delete=models.CASCADE,
+        related_name='song_composers'
+    )
+    split_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Percentage of royalties for this composer (0-100)"
+    )
+    notes = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Additional notes about this composer's contribution"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [['song', 'composer']]
+        verbose_name = "Song Composer Split"
+        verbose_name_plural = "Song Composer Splits"
+        ordering = ['song', '-split_percentage']
+
+    def __str__(self):
+        return f"{self.song.title} - {self.composer.full_name} ({self.split_percentage}%)"
+
+    def save(self, *args, **kwargs):
+        """
+        Ensure the total split percentage for a song doesn't exceed 100%.
+        """
+        # Calculate total percentage for this song (excluding current instance if it exists)
+        existing_splits = SongComposer.objects.filter(song=self.song).exclude(pk=self.pk)
+        total = existing_splits.aggregate(total=models.Sum('split_percentage'))['total'] or 0
+        total += self.split_percentage
+
+        if total > 100:
+            raise ValueError(
+                f"Total split percentage for song '{self.song.title}' would exceed 100% "
+                f"(current total: {total}%). Please adjust the percentages."
+            )
+
+        super().save(*args, **kwargs)
 
 # =============================================
 # Payment Statement Model
@@ -398,6 +564,7 @@ class PaymentStatement(models.Model):
 
 # =============================================
 # PRS Data Model (Depends on Song, Source, IncomeType, PaymentStatement)
+# unique_together defines the allowance of duplicates in the prs data
 # =============================================
 
 class Prs_data(models.Model):
@@ -652,7 +819,8 @@ class Prs_data(models.Model):
         verbose_name = "PRS Data Record"
         verbose_name_plural = "PRS Data Records"
         ordering = ['-income_period', 'song_title']
-        unique_together = [['song_code', 'income_period', 'source_code', 'income_type_code']]
+        #Option to prevent duplicate uploads.
+        #unique_together = [['song_code', 'income_period', 'source_code', 'income_type_code']]
         indexes = [
             models.Index(fields=['song_title']),
             models.Index(fields=['income_period']),
@@ -686,20 +854,16 @@ class Prs_data(models.Model):
     @property
     def composer(self):
         """
-        Property to get the composer from the song.
-        Returns None if no song or no composer is linked.
+        Returns the first composer from the song for backward compatibility.
         """
         return self.song.composer if self.song else None
 
     @property
     def composer_name(self):
         """
-        Property to get the composer's name.
-        Falls back to the legacy artist field if no composer is linked.
+        Returns the composer names from the song.
         """
-        if self.composer:
-            return self.composer.full_name
-        return self.artist or "Unknown"
+        return self.song.composer_names if self.song else "Unknown"
 
     def mark_as_paid(self, payment_statement=None, payment_date=None, payment_amount=None, notes=None):
         """
@@ -991,3 +1155,64 @@ class UploadHistory(models.Model):
         Return the human-readable status.
         """
         return dict(self._meta.get_field('status').choices).get(self.status, self.status)
+
+from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+class SongComposer(models.Model):
+    """
+    Intermediate model to handle multiple composers per song with royalty splits.
+    """
+    song = models.ForeignKey(
+        'Song',
+        on_delete=models.CASCADE,
+        related_name='song_composers'
+    )
+    composer = models.ForeignKey(
+        'Composer',
+        on_delete=models.CASCADE,
+        related_name='song_composers'
+    )
+    split_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Percentage of royalties for this composer (0-100)"
+    )
+    notes = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Additional notes about this composer's contribution"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [['song', 'composer']]
+        verbose_name = "Song Composer Split"
+        verbose_name_plural = "Song Composer Splits"
+        ordering = ['song', 'composer']
+
+    def __str__(self):
+        return f"{self.song.title} - {self.composer.full_name} ({self.split_percentage}%)"
+
+    def save(self, *args, **kwargs):
+        """
+        Ensure the total split percentage for a song doesn't exceed 100%.
+        """
+        # Calculate total percentage for this song
+        total = SongComposer.objects.filter(song=self.song).aggregate(
+            total=models.Sum('split_percentage')
+        )['total'] or 0
+
+        # Add the current instance's percentage (if it's an update, exclude the old value)
+        if self.pk:
+            old_instance = SongComposer.objects.get(pk=self.pk)
+            total = total - old_instance.split_percentage + self.split_percentage
+        else:
+            total += self.split_percentage
+
+        if total > 100:
+            raise ValueError(f"Total split percentage for song '{self.song.title}' would exceed 100% (current total: {total}%)")
+
+        super().save(*args, **kwargs)

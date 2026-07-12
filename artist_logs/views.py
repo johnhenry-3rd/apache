@@ -338,11 +338,69 @@ def dashboard(request):
 # PRS Admin Views
 # =============================================
 
+from django.http import JsonResponse
+from django.contrib import messages
+from django.views.decorators.http import require_http_methods
+from django.db import transaction
+from django.shortcuts import render, redirect
+from io import StringIO
+import csv
+import hashlib
+from artist_logs.models import (
+    Song, Composer, Prs_data, Source, IncomeType,
+    UploadHistory, Artist, PaymentStatement, PaymentPlan, SongComposer
+)
+import re
+
+def parse_composer_splits(composers_text):
+    """
+    Parse composer splits from text.
+    Supports formats like:
+    - "Scott Green (60%), Theo Rivers (40%)"
+    - "Scott Green:60, Theo Rivers:40"
+    - "Scott Green, Theo Rivers" (equal split)
+    Returns a list of tuples: [(composer_name, percentage), ...]
+    """
+    if not composers_text:
+        return []
+
+    splits = []
+
+    # Pattern 1: "Name (XX%)"
+    pattern1 = r'([^(]+)\s*\((\d+)%\)'
+    matches = re.findall(pattern1, composers_text)
+    for name, percentage in matches:
+        splits.append((name.strip(), float(percentage)))
+
+    # If no matches with pattern 1, try pattern 2: "Name:XX"
+    if not splits:
+        pattern2 = r'([^:]+):(\d+)'
+        matches = re.findall(pattern2, composers_text)
+        for name, percentage in matches:
+            splits.append((name.strip(), float(percentage)))
+
+    # If still no matches, assume equal split
+    if not splits:
+        names = [name.strip() for name in composers_text.replace(';', ',').replace('/', ',').split(',') if name.strip()]
+        if names:
+            percentage = 100.0 / len(names)
+            for name in names:
+                splits.append((name, percentage))
+
+    # Normalize percentages to sum to 100 if they don't
+    total = sum(p for _, p in splits)
+    if total > 0 and total != 100:
+        factor = 100.0 / total
+        splits = [(name, p * factor) for name, p in splits]
+
+    return splits
+
 @require_http_methods(["GET", "POST"])
 def prs_admin(request):
     """
     View for uploading CSV files, tracking upload history, and displaying recent records.
     Handles both AJAX uploads (with progress tracking) and regular form submissions.
+    Now supports multiple composers per song with royalty splits.
     """
     # --- Handle CSV upload ---
     if request.method == 'POST' and 'csv_file' in request.FILES:
@@ -456,7 +514,6 @@ def prs_admin(request):
 
             imported_count = 0
             skipped_count = 0
-            duplicate_count = 0
             errors = []
 
             with transaction.atomic():
@@ -510,24 +567,6 @@ def prs_admin(request):
                             }
                         )
 
-                        # --- Handle Composer ---
-                        composer_name = None
-
-                        # Try to get composer from 'Composers' field first
-                        if 'Composers' in mapped_row and mapped_row['Composers'].strip():
-                            names = [name.strip() for name in mapped_row['Composers'].replace(';', ',').replace('/', ',').split(',') if name.strip()]
-                            composer_name = names[0] if names else None
-
-                        # Fall back to 'Artist' field if no composer found
-                        if not composer_name and 'Artist' in mapped_row and mapped_row['Artist'].strip():
-                            names = [name.strip() for name in mapped_row['Artist'].replace(';', ',').replace('/', ',').split(',') if name.strip()]
-                            composer_name = names[0] if names else None
-
-                        # Create or get the composer
-                        composer = None
-                        if composer_name:
-                            composer = Composer.find_or_create_by_name(composer_name)
-
                         # --- Handle Song ---
                         song_code = mapped_row.get('song_code', '').strip() or None
                         song_title = mapped_row.get('song_title', '').strip()
@@ -536,6 +575,7 @@ def prs_admin(request):
                         album = mapped_row.get('album_or_production', '').strip()
                         episode = mapped_row.get('episode', '').strip()
                         license_number = mapped_row.get('license_number', '').strip()
+                        composers_text = mapped_row.get('composers', '').strip()
 
                         # Create or get the song
                         song, created = Song.objects.get_or_create(
@@ -547,68 +587,104 @@ def prs_admin(request):
                                 'album_or_production': album,
                                 'episode': episode,
                                 'license_number': license_number,
-                                'composer': composer,
                             }
                         )
 
-                        # If the song already existed, ONLY set composer if it's currently None
+                        # Update song fields if they've changed
                         if not created:
-                            if not song.composer and composer:
-                                song.composer = composer
-                                song.save()
+                            if song.title != song_title:
+                                song.title = song_title
+                            if song.catalogue_number != catalogue_no:
+                                song.catalogue_number = catalogue_no
+                            if song.isrc != isrc:
+                                song.isrc = isrc
+                            if song.album_or_production != album:
+                                song.album_or_production = album
+                            if song.episode != episode:
+                                song.episode = episode
+                            if song.license_number != license_number:
+                                song.license_number = license_number
+                            song.save()
 
-                        # --- Create or update Prs_data ---
-                        prs_data, created = Prs_data.objects.get_or_create(
+                        # --- Handle Composers with Splits ---
+                        if composers_text:
+                            try:
+                                # Parse composer splits
+                                splits = parse_composer_splits(composers_text)
+
+                                # Clear existing composers for this song
+                                song.song_composers.all().delete()
+
+                                # Add new composers with splits
+                                for composer_name, percentage in splits:
+                                    # Parse the name
+                                    parts = composer_name.split()
+                                    if len(parts) > 1:
+                                        first_name = ' '.join(parts[:-1])
+                                        last_name = parts[-1]
+                                    else:
+                                        first_name = ''
+                                        last_name = parts[0]
+
+                                    # Get or create the composer
+                                    composer, _ = Composer.objects.get_or_create(
+                                        first_name=first_name,
+                                        last_name=last_name,
+                                        defaults={'full_name': composer_name}
+                                    )
+
+                                    # Create SongComposer record
+                                    SongComposer.objects.create(
+                                        song=song,
+                                        composer=composer,
+                                        split_percentage=percentage
+                                    )
+
+                                # Set the first composer as the legacy composer for backward compatibility
+                                if song.song_composers.exists():
+                                    song.composer = song.song_composers.first().composer
+                                    song.save(update_fields=['composer'])
+
+                            except Exception as e:
+                                errors.append(f"Error processing composer splits for song {song_code}: {str(e)}")
+                                # Continue with the PRS data creation even if composer splits fail
+
+                        # --- Create Prs_data (ALLOWS DUPLICATES) ---
+                        prs_data = Prs_data.objects.create(
                             song=song,
+                            song_title=song_title,
+                            song_code=song_code,
                             income_period=mapped_row.get('income_period', ''),
                             source=source,
+                            source_code=source_code,
+                            source_name=source_name,
+                            domestic_or_foreign=domestic_or_foreign,
+                            foreign_source=foreign_source,
+                            royalty_country_code=country_code,
+                            royalty_country_description=country_name,
                             income_type=income_type,
-                            defaults={
-                                'song_title': song_title,
-                                'song_code': song_code,
-                                'source_code': source_code,
-                                'source_name': source_name,
-                                'domestic_or_foreign': domestic_or_foreign,
-                                'foreign_source': foreign_source,
-                                'royalty_country_code': country_code,
-                                'royalty_country_description': country_name,
-                                'income_type_code': income_type_code,
-                                'income_type_name': income_type_name,
-                                'main_income_type_name': main_income_type,
-                                'units': int(mapped_row.get('units', 0)) if mapped_row.get('units') else 0,
-                                'percentage_collected': float(mapped_row.get('percentage_collected', 0)) if mapped_row.get('percentage_collected') else 0.00,
-                                'amount_collected': float(mapped_row.get('amount_collected', 0)) if mapped_row.get('amount_collected') else 0.00,
-                                'royalty_payout_percentage': float(mapped_row.get('royalty_payout_percentage', 0)) if mapped_row.get('royalty_payout_percentage') else 0.00,
-                                'royalty_payable': float(mapped_row.get('royalty_payable', 0)) if mapped_row.get('royalty_payable') else 0.00,
-                                'statement_id_year': mapped_row.get('statement_id_year', ''),
-                                'statement_id_number': mapped_row.get('statement_id_number', ''),
-                                'catalogue_no': catalogue_no,
-                                'composers': mapped_row.get('composers', ''),
-                                'artist': mapped_row.get('artist', ''),
-                                'isrc': isrc,
-                                'album_or_production': album,
-                                'episode': episode,
-                                'license_number': license_number,
-                                'original_source_as_received': original_source,
-                                'original_source': mapped_row.get('original_source', ''),
-                                'is_paid': False,
-                            }
+                            income_type_code=income_type_code,
+                            income_type_name=income_type_name,
+                            main_income_type_name=main_income_type,
+                            units=int(mapped_row.get('units', 0)) if mapped_row.get('units') else 0,
+                            percentage_collected=float(mapped_row.get('percentage_collected', 0)) if mapped_row.get('percentage_collected') else 0.00,
+                            amount_collected=float(mapped_row.get('amount_collected', 0)) if mapped_row.get('amount_collected') else 0.00,
+                            royalty_payout_percentage=float(mapped_row.get('royalty_payout_percentage', 0)) if mapped_row.get('royalty_payout_percentage') else 0.00,
+                            royalty_payable=float(mapped_row.get('royalty_payable', 0)) if mapped_row.get('royalty_payable') else 0.00,
+                            statement_id_year=mapped_row.get('statement_id_year', ''),
+                            statement_id_number=mapped_row.get('statement_id_number', ''),
+                            catalogue_no=catalogue_no,
+                            composers=composers_text,
+                            artist=mapped_row.get('artist', ''),
+                            isrc=isrc,
+                            album_or_production=album,
+                            episode=episode,
+                            license_number=license_number,
+                            original_source_as_received=original_source,
+                            original_source=mapped_row.get('original_source', ''),
+                            is_paid=False,
                         )
-
-                        if not created:
-                            # Update existing record
-                            prs_data.song_title = song_title
-                            prs_data.song_code = song_code
-                            prs_data.royalty_payable = float(mapped_row.get('royalty_payable', 0)) if mapped_row.get('royalty_payable') else 0.00
-                            prs_data.composers = mapped_row.get('composers', prs_data.composers)
-                            prs_data.units = int(mapped_row.get('units', 0)) if mapped_row.get('units') else prs_data.units
-                            prs_data.percentage_collected = float(mapped_row.get('percentage_collected', 0)) if mapped_row.get('percentage_collected') else prs_data.percentage_collected
-                            prs_data.amount_collected = float(mapped_row.get('amount_collected', 0)) if mapped_row.get('amount_collected') else prs_data.amount_collected
-                            prs_data.royalty_payout_percentage = float(mapped_row.get('royalty_payout_percentage', 0)) if mapped_row.get('royalty_payout_percentage') else prs_data.royalty_payout_percentage
-                            prs_data.save()
-                            duplicate_count += 1
-                        else:
-                            imported_count += 1
+                        imported_count += 1
 
                     except Exception as e:
                         errors.append(f"Error importing row {reader.line_num}: {str(e)}")
@@ -627,7 +703,6 @@ def prs_admin(request):
                 return JsonResponse({
                     'success': True,
                     'message': f'✅ Successfully processed {imported_count} new records. '
-                               f'🔄 Updated {duplicate_count} existing records. '
                                f'⏭️ Skipped {skipped_count} empty rows.',
                     'preview': preview,
                     'records_processed': imported_count
@@ -635,8 +710,6 @@ def prs_admin(request):
             else:
                 if imported_count > 0:
                     messages.success(request, f"✅ Successfully imported {imported_count} new records.")
-                if duplicate_count > 0:
-                    messages.info(request, f"🔄 Updated {duplicate_count} existing records.")
                 if skipped_count > 0:
                     messages.warning(request, f"⏭️ Skipped {skipped_count} empty rows.")
                 if errors:
@@ -691,6 +764,31 @@ def prs_admin(request):
         'payment_statement_count': payment_statement_count,
         'payment_plan_count': payment_plan_count,
         'payment_statements': payment_statements,
+    })
+
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from artist_logs.models import Song
+
+def song_composer_splits(request, song_id):
+    """
+    Return composer splits for a song as JSON.
+    """
+    song = get_object_or_404(Song, pk=song_id)
+
+    composer_splits = []
+    for sc in song.song_composers.all():
+        composer_splits.append({
+            'composer_name': sc.composer.full_name,
+            'split_percentage': sc.split_percentage,
+            'notes': sc.notes or ''
+        })
+
+    return JsonResponse({
+        'song_id': song.id,
+        'song_title': song.title,
+        'composers': composer_splits,
+        'total_percentage': song.total_split_percentage
     })
 
 # =============================================
@@ -1062,17 +1160,24 @@ def composer_payment_history(request, pk):
 # Song Views
 # =============================================
 
+from django.shortcuts import render
+from django.db.models import Q, Sum
+from django.core.paginator import Paginator
+from .models import Song, Composer
+
 def song_list(request):
     """
     List all songs with search, filtering, and pagination.
+    Now supports multiple composers with royalty splits.
     """
     # Get filter parameters from the request
     search_query = request.GET.get('search', '')
     composer_id = request.GET.get('composer', '')
     has_composer = request.GET.get('has_composer', '')
+    has_multiple_composers = request.GET.get('has_multiple_composers', '')
 
-    # Base queryset
-    songs = Song.objects.all().select_related('composer').order_by('title')
+    # Base queryset - use prefetch_related for composer splits
+    songs = Song.objects.all().prefetch_related('song_composers__composer').order_by('title')
 
     # Apply search filter
     if search_query:
@@ -1083,22 +1188,48 @@ def song_list(request):
             Q(catalogue_number__icontains=search_query)
         )
 
-    # Apply composer filter
+    # Apply composer filter - now checks both legacy composer and song_composers
     if composer_id:
-        songs = songs.filter(composer_id=composer_id)
+        songs = songs.filter(
+            Q(composer_id=composer_id) |  # Legacy composer
+            Q(song_composers__composer_id=composer_id)  # New composer splits
+        ).distinct()
 
     # Apply "has composer" filter
     if has_composer == 'yes':
-        songs = songs.filter(composer__isnull=False)
+        songs = songs.filter(
+            Q(composer__isnull=False) |  # Legacy composer
+            Q(song_composers__isnull=False)  # New composer splits
+        ).distinct()
     elif has_composer == 'no':
-        songs = songs.filter(composer__isnull=True)
+        songs = songs.filter(
+            Q(composer__isnull=True) &
+            Q(song_composers__isnull=True)
+        )
+
+    # Apply "has multiple composers" filter
+    if has_multiple_composers == 'yes':
+        # Songs with more than one composer in song_composers
+        songs = songs.annotate(
+            composer_count=Count('song_composers')
+        ).filter(composer_count__gt=1)
+    elif has_multiple_composers == 'no':
+        # Songs with one or zero composers
+        songs = songs.annotate(
+            composer_count=Count('song_composers')
+        ).filter(composer_count__lte=1)
 
     # Get all composers for the dropdown
     composers = Composer.objects.all().order_by('full_name')
 
     # Calculate statistics
     total_earnings = sum(song.total_earnings() for song in songs) if songs.exists() else 0
-    composers_with_songs = Composer.objects.filter(songs__in=songs).distinct().count()
+
+    # Count composers with songs (using either legacy or new relationships)
+    composers_with_songs = Composer.objects.filter(
+        Q(songs__in=songs) | Q(song_composers__song__in=songs)
+    ).distinct().count()
+
     songs_with_prs = songs.filter(prs_records__isnull=False).distinct().count()
 
     # Pagination
@@ -1114,6 +1245,7 @@ def song_list(request):
         'total_earnings': total_earnings,
         'composers_with_songs': composers_with_songs,
         'songs_with_prs': songs_with_prs,
+        'has_multiple_composers_filter': has_multiple_composers,
     })
 
 def song_detail(request, pk):
@@ -1138,6 +1270,11 @@ def song_detail(request, pk):
         'paid_earnings': paid_earnings,
     })
 
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from .models import Song, Composer
+from .forms import SongForm, SongComposerForm
+
 def song_create(request):
     """
     Create a new song.
@@ -1145,21 +1282,15 @@ def song_create(request):
     if request.method == 'POST':
         form = SongForm(request.POST)
         if form.is_valid():
-            try:
-                song = form.save()
-                messages.success(request, f"✅ Song '{song.title}' created successfully!")
-                return redirect('artist_logs:song_detail', pk=song.pk)
-            except IntegrityError as e:
-                if 'unique_song_title_per_composer' in str(e):
-                    form.add_error('title', f"A song with the title '{form.cleaned_data['title']}' already exists for this composer.")
-                else:
-                    messages.error(request, f"❌ Error creating song: {str(e)}")
+            song = form.save()
+            messages.success(request, f"Song '{song.title}' created successfully!")
+            return redirect('artist_logs:song_detail', pk=song.pk)
     else:
         form = SongForm()
 
     return render(request, 'artist_logs/song_form.html', {
         'form': form,
-        'title': 'Add Song',
+        'title': 'Create New Song'
     })
 
 def song_edit(request, pk):
@@ -1167,24 +1298,20 @@ def song_edit(request, pk):
     Edit an existing song.
     """
     song = get_object_or_404(Song, pk=pk)
+
     if request.method == 'POST':
         form = SongForm(request.POST, instance=song)
         if form.is_valid():
-            try:
-                form.save()
-                messages.success(request, f"✅ Song '{song.title}' updated successfully!")
-                return redirect('artist_logs:song_detail', pk=song.pk)
-            except IntegrityError as e:
-                if 'unique_song_title_per_composer' in str(e):
-                    form.add_error('title', f"A song with the title '{form.cleaned_data['title']}' already exists for this composer.")
-                else:
-                    messages.error(request, f"❌ Error updating song: {str(e)}")
+            form.save()
+            messages.success(request, f"Song '{song.title}' updated successfully!")
+            return redirect('artist_logs:song_detail', pk=song.pk)
     else:
         form = SongForm(instance=song)
 
     return render(request, 'artist_logs/song_form.html', {
         'form': form,
-        'title': f'Edit {song.title}',
+        'song': song,
+        'title': f'Edit {song.title}'
     })
 
 # =============================================
@@ -1344,28 +1471,10 @@ def composer_payment_history(request, pk):
 # Payment Statement Views
 # =============================================
 
-def payment_statement_list(request):
-    """
-    List all payment statements.
-    """
-    payment_statements = PaymentStatement.objects.all().order_by('-statement_date')
-    return render(request, 'artist_logs/payment_statement_list.html', {
-        'payment_statements': payment_statements,
-    })
-
-def payment_statement_detail(request, statement_id):
-    """
-    Show details of a specific payment statement and its associated PRS records.
-    """
-    statement = get_object_or_404(PaymentStatement, id=statement_id)
-    prs_records = Prs_data.objects.filter(payment_statement=statement).order_by('-income_period')
-    total_royalty = prs_records.aggregate(total=Sum('royalty_payable'))['total'] or 0
-
-    return render(request, 'artist_logs/payment_statement_detail.html', {
-        'statement': statement,
-        'prs_records': prs_records,
-        'total_royalty': total_royalty,
-    })
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from .models import PaymentStatement
+from .forms import PaymentStatementForm
 
 def create_payment_statement(request):
     """
@@ -1375,14 +1484,47 @@ def create_payment_statement(request):
         form = PaymentStatementForm(request.POST)
         if form.is_valid():
             statement = form.save()
-            messages.success(request, f"✅ Payment statement '{statement.statement_number}' created successfully!")
+            messages.success(request, f"Payment statement '{statement.statement_number}' created successfully!")
             return redirect('artist_logs:payment_statement_detail', pk=statement.pk)
     else:
         form = PaymentStatementForm()
 
     return render(request, 'artist_logs/payment_statement_form.html', {
         'form': form,
-        'title': 'Create Payment Statement',
+        'title': 'Create New Payment Statement'
+    })
+
+def payment_statement_detail(request, pk):
+    """
+    View details of a specific payment statement.
+    """
+    statement = get_object_or_404(PaymentStatement, pk=pk)
+    prs_records = statement.prs_records.all().select_related('song', 'source', 'income_type')
+
+    return render(request, 'artist_logs/payment_statement_detail.html', {
+        'statement': statement,
+        'prs_records': prs_records,
+    })
+
+def payment_statement_edit(request, pk):
+    """
+    Edit an existing payment statement.
+    """
+    statement = get_object_or_404(PaymentStatement, pk=pk)
+
+    if request.method == 'POST':
+        form = PaymentStatementForm(request.POST, instance=statement)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Payment statement '{statement.statement_number}' updated successfully!")
+            return redirect('artist_logs:payment_statement_detail', pk=statement.pk)
+    else:
+        form = PaymentStatementForm(instance=statement)
+
+    return render(request, 'artist_logs/payment_statement_form.html', {
+        'form': form,
+        'statement': statement,
+        'title': f'Edit Payment Statement {statement.statement_number}'
     })
 
 # =============================================
@@ -2111,3 +2253,150 @@ def download_backup(request, filename):
     else:
         messages.error(request, f"Backup file {filename} not found.")
         return redirect('artist_logs:backup_list')        
+    
+# ======================
+# COMPOSER-SONG RELATIONSHIP VIEWS
+# ======================
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import JsonResponse
+from django.contrib import messages
+from .models import Song, Composer, SongComposer
+from .forms import ComposerForm, SongComposerForm
+
+def composer_songs(request, pk):
+    """
+    View all songs by a specific composer with their split percentages.
+    """
+    composer = get_object_or_404(Composer, pk=pk)
+    song_composers = composer.song_composers.all().select_related('song').order_by('-song__title')
+
+    # Calculate total earnings for this composer
+    total_earnings = sum(
+        sc.song.total_earnings * (sc.split_percentage / 100)
+        for sc in song_composers
+    )
+
+    return render(request, 'artist_logs/composer_songs.html', {
+        'composer': composer,
+        'song_composers': song_composers,
+        'total_earnings': total_earnings,
+    })
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from .models import Song, Composer, SongComposer
+from .forms import SongComposerForm
+
+def add_composer_to_song(request, song_id):
+    """
+    View for adding/editing composers for a specific song with split percentages.
+    """
+    song = get_object_or_404(Song, pk=song_id)
+    composers = Composer.objects.all().order_by('full_name')
+
+    if request.method == 'POST':
+        # Pass the song to the form
+        form = SongComposerForm(request.POST, song=song)
+
+        if form.is_valid():
+            song_composer = form.save(commit=False)
+            song_composer.song = song
+            song_composer.save()
+
+            # Set as legacy composer if this is the first one
+            if not song.composer:
+                song.composer = song_composer.composer
+                song.save()
+
+            messages.success(request, f"Added {song_composer.composer.full_name} with {song_composer.split_percentage}% split")
+            return redirect('artist_logs:add_composer_to_song', song_id=song.id)
+    else:
+        # Pass the song to the form for GET requests too
+        form = SongComposerForm(song=song)
+
+    # Get current composers for this song
+    current_composers = song.song_composers.all().select_related('composer')
+
+    return render(request, 'artist_logs/add_composer_to_song.html', {
+        'song': song,
+        'form': form,
+        'composers': composers,
+        'current_composers': current_composers,
+    })
+
+def remove_composer_from_song(request, song_id, composer_id):
+    """
+    Remove a composer from a song.
+    """
+    song = get_object_or_404(Song, pk=song_id)
+    song_composer = get_object_or_404(SongComposer, song=song, composer_id=composer_id)
+
+    composer_name = song_composer.composer.full_name
+    song_composer.delete()
+
+    messages.success(request, f"Removed {composer_name} from {song.title}")
+
+    # If this was the last composer, clear the legacy composer field
+    if not song.song_composers.exists():
+        song.composer = None
+        song.save()
+
+    return redirect('artist_logs:song_edit', pk=song.id)
+
+def song_composer_splits(request, song_id):
+    """
+    Return composer splits for a song as JSON (for AJAX requests).
+    """
+    song = get_object_or_404(Song, pk=song_id)
+
+    composer_splits = []
+    for sc in song.song_composers.all():
+        composer_splits.append({
+            'composer_name': sc.composer.full_name,
+            'split_percentage': float(sc.split_percentage),
+            'notes': sc.notes or ''
+        })
+
+    return JsonResponse({
+        'song_id': song.id,
+        'song_title': song.title,
+        'composers': composer_splits,
+        'total_percentage': float(song.total_split_percentage)
+    })
+
+def quick_add_composer(request):
+    """
+    Quick form to add a new composer (used in the add_composer_to_song template).
+    """
+    if request.method == 'POST':
+        form = ComposerForm(request.POST)
+        if form.is_valid():
+            composer = form.save()
+            messages.success(request, f"Composer {composer.full_name} created successfully!")
+
+            # Redirect to the referer or the next URL
+            next_url = request.POST.get('next')
+            if next_url:
+                return redirect(next_url)
+            return redirect('artist_logs:composer_list')
+    else:
+        form = ComposerForm()
+
+    next_url = request.GET.get('next', '')
+    return render(request, 'artist_logs/quick_add_composer.html', {
+        'form': form,
+        'next': next_url
+    })
+
+def payment_statement_detail(request, pk):
+    """
+    View details of a specific payment statement.
+    """
+    statement = get_object_or_404(PaymentStatement, pk=pk)
+    prs_records = statement.prs_records.all().select_related('song', 'source', 'income_type')
+
+    return render(request, 'artist_logs/payment_statement_detail.html', {
+        'statement': statement,
+        'prs_records': prs_records,
+    })

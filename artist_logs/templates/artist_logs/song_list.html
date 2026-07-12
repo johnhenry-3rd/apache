@@ -41,7 +41,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="has_composer" class="form-label">Composer Status</label>
                 <select class="form-select apache-form" id="has_composer" name="has_composer">
                     <option value="">All</option>
@@ -49,7 +49,15 @@
                     <option value="no" {% if request.GET.has_composer == 'no' %}selected{% endif %}>Without Composer</option>
                 </select>
             </div>
-            <div class="col-md-2 d-flex align-items-end">
+            <div class="col-md-2">
+                <label for="has_multiple_composers" class="form-label">Multiple Composers</label>
+                <select class="form-select apache-form" id="has_multiple_composers" name="has_multiple_composers">
+                    <option value="">All</option>
+                    <option value="yes" {% if request.GET.has_multiple_composers == 'yes' %}selected{% endif %}>Yes</option>
+                    <option value="no" {% if request.GET.has_multiple_composers == 'no' %}selected{% endif %}>No</option>
+                </select>
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
                 <button type="button" class="btn btn-outline-light w-100" onclick="window.location.href='{% url 'artist_logs:song_list' %}'">
                     <i class="fas fa-times me-1"></i> Clear
                 </button>
@@ -104,7 +112,7 @@
                 <tr>
                     <th>Title</th>
                     <th>Code</th>
-                    <th>Composer</th>
+                    <th>Composer(s)</th>  <!-- Updated header -->
                     <th>PRS Records</th>
                     <th>Total Earnings</th>
                     <th>ISRC</th>
@@ -125,13 +133,34 @@
                     </td>
                     <td>{{ song.code|default:"-" }}</td>
                     <td>
-                        {% if song.composer %}
-                        <a href="{% url 'artist_logs:composer_detail' song.composer.id %}" class="text-gold">
-                            {{ song.composer.full_name }}
-                        </a>
-                        {% else %}
-                        <span class="text-muted">No composer</span>
-                        {% endif %}
+                        <!-- Display multiple composers with splits -->
+                        {% with song_composers=song.song_composers.all %}
+                            {% if song_composers %}
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% for sc in song_composers %}
+                                        <span class="composer-badge">
+                                            <span class="name">{{ sc.composer.full_name }}</span>
+                                            <span class="percentage">{{ sc.split_percentage }}%</span>
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                                {% if song.total_split_percentage != 100 %}
+                                <div class="text-warning small mt-1">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    Total: {{ song.total_split_percentage }}%
+                                </div>
+                                {% endif %}
+                            {% else %}
+                                <!-- Fallback to legacy composer if no splits -->
+                                {% if song.composer %}
+                                    <a href="{% url 'artist_logs:composer_detail' song.composer.id %}" class="text-gold">
+                                        {{ song.composer.full_name }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">No composer</span>
+                                {% endif %}
+                            {% endif %}
+                        {% endwith %}
                     </td>
                     <td>{{ song.prs_records.count }}</td>
                     <td>£{{ song.total_earnings|floatformat:2 }}</td>
@@ -145,7 +174,11 @@
                             <a href="{% url 'artist_logs:song_edit' song.id %}" class="btn btn-outline-light btn-sm">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            {% if song.composer %}
+                            {% if song.song_composers.count > 1 %}
+                            <a href="{% url 'artist_logs:add_composer_to_song' song.id %}" class="btn btn-outline-info btn-sm" title="Manage Composers">
+                                <i class="fas fa-users"></i>
+                            </a>
+                            {% elif song.composer %}
                             <a href="{% url 'artist_logs:composer_detail' song.composer.id %}" class="btn btn-outline-gold btn-sm">
                                 <i class="fas fa-user-music"></i>
                             </a>
@@ -168,12 +201,12 @@
         <ul class="pagination justify-content-center">
             {% if page_obj.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.composer %}&composer={{ request.GET.composer }}{% endif %}{% if request.GET.has_composer %}&has_composer={{ request.GET.has_composer }}{% endif %}" aria-label="First">
+                <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.composer %}&composer={{ request.GET.composer }}{% endif %}{% if request.GET.has_composer %}&has_composer={{ request.GET.has_composer }}{% endif %}{% if request.GET.has_multiple_composers %}&has_multiple_composers={{ request.GET.has_multiple_composers }}{% endif %}" aria-label="First">
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.composer %}&composer={{ request.GET.composer }}{% endif %}{% if request.GET.has_composer %}&has_composer={{ request.GET.has_composer }}{% endif %}" aria-label="Previous">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.composer %}&composer={{ request.GET.composer }}{% endif %}{% if request.GET.has_composer %}&has_composer={{ request.GET.has_composer }}{% endif %}{% if request.GET.has_multiple_composers %}&has_multiple_composers={{ request.GET.has_multiple_composers }}{% endif %}" aria-label="Previous">
                     <span aria-hidden="true">&lsaquo;</span>
                 </a>
             </li>
@@ -184,19 +217,19 @@
             <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
             {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.composer %}&composer={{ request.GET.composer }}{% endif %}{% if request.GET.has_composer %}&has_composer={{ request.GET.has_composer }}{% endif %}">{{ num }}</a>
+                <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.composer %}&composer={{ request.GET.composer }}{% endif %}{% if request.GET.has_composer %}&has_composer={{ request.GET.has_composer }}{% endif %}{% if request.GET.has_multiple_composers %}&has_multiple_composers={{ request.GET.has_multiple_composers }}{% endif %}">{{ num }}</a>
             </li>
             {% endif %}
             {% endfor %}
 
             {% if page_obj.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.composer %}&composer={{ request.GET.composer }}{% endif %}{% if request.GET.has_composer %}&has_composer={{ request.GET.has_composer }}{% endif %}" aria-label="Next">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.composer %}&composer={{ request.GET.composer }}{% endif %}{% if request.GET.has_composer %}&has_composer={{ request.GET.has_composer }}{% endif %}{% if request.GET.has_multiple_composers %}&has_multiple_composers={{ request.GET.has_multiple_composers }}{% endif %}" aria-label="Next">
                     <span aria-hidden="true">&rsaquo;</span>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.composer %}&composer={{ request.GET.composer }}{% endif %}{% if request.GET.has_composer %}&has_composer={{ request.GET.has_composer }}{% endif %}" aria-label="Last">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.composer %}&composer={{ request.GET.composer }}{% endif %}{% if request.GET.has_composer %}&has_composer={{ request.GET.has_composer }}{% endif %}{% if request.GET.has_multiple_composers %}&has_multiple_composers={{ request.GET.has_multiple_composers }}{% endif %}" aria-label="Last">
                     <span aria-hidden="true">&raquo;</span>
                 </a>
             </li>
@@ -209,7 +242,7 @@
 
 {% block extra_css %}
 <style>
-    /* Custom styles for song list */
+    /* Your existing CSS */
     .border-gold {
         border: 1px solid var(--apache-gold) !important;
     }
@@ -268,6 +301,33 @@
         display: flex;
         gap: 0.25rem;
     }
+
+    /* New CSS for composer badges */
+    .composer-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 8px;
+        border-radius: 4px;
+        background-color: rgba(255, 255, 255, 0.1);
+        color: var(--apache-light);
+        font-size: 0.8rem;
+    }
+
+    .composer-badge .name {
+        font-weight: 500;
+        margin-right: 4px;
+    }
+
+    .composer-badge .percentage {
+        color: var(--apache-gold);
+        font-weight: 600;
+    }
+
+    /* Adjust composer column width */
+    .table th:nth-child(3),
+    .table td:nth-child(3) {
+        width: 25%;
+    }
 </style>
 {% endblock %}
 
@@ -277,6 +337,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         const composerDropdown = document.getElementById('composer');
         const hasComposerDropdown = document.getElementById('has_composer');
+        const hasMultipleComposersDropdown = document.getElementById('has_multiple_composers');
 
         if (composerDropdown) {
             composerDropdown.addEventListener('change', function() {
@@ -286,6 +347,12 @@
 
         if (hasComposerDropdown) {
             hasComposerDropdown.addEventListener('change', function() {
+                this.form.submit();
+            });
+        }
+
+        if (hasMultipleComposersDropdown) {
+            hasMultipleComposersDropdown.addEventListener('change', function() {
                 this.form.submit();
             });
         }

@@ -1,0 +1,198 @@
+{% extends 'artist_logs/base.html' %}
+
+{% block title %}Add Composers to {{ song.title }} - Apache Music{% endblock %}
+
+{% block content %}
+<div class="apache-card">
+    <!-- Header with Title and Back Button -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fas fa-users me-2" style="color: var(--apache-gold);"></i>
+            Composers for "{{ song.title }}"
+        </h1>
+        <div>
+            <a href="{% url 'artist_logs:song_detail' song.id %}" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left me-1"></i> Back to Song
+            </a>
+        </div>
+    </div>
+
+    <!-- Current Composers Section -->
+    <div class="apache-card mb-4">
+        <h3><i class="fas fa-list me-2" style="color: var(--apache-gold);"></i>Current Composers</h3>
+        <hr class="bg-gold">
+
+        {% if current_composers %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Composer</th>
+                        <th>Split %</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sc in current_composers %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'artist_logs:composer_detail' sc.composer.id %}" class="text-gold">
+                                {{ sc.composer.full_name }}
+                            </a>
+                        </td>
+                        <td>{{ sc.split_percentage }}%</td>
+                        <td>{{ sc.notes|default:"-" }}</td>
+                        <td>
+                            <form method="post" action="{% url 'artist_logs:remove_composer_from_song' song.id sc.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Remove">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-dark">
+                    <tr>
+                        <td><strong>Total:</strong></td>
+                        <td><strong>{{ song.total_split_percentage }}%</strong></td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        {% if song.total_split_percentage != 100 %}
+        <div class="alert alert-warning mt-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Total split percentage is {{ song.total_split_percentage }}% (should be 100%)
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            No composers have been added to this song yet.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Add Composer Form -->
+    <div class="apache-card mb-4">
+        <h3><i class="fas fa-plus me-2" style="color: var(--apache-gold);"></i>Add Composer</h3>
+        <hr class="bg-gold">
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="{{ form.composer.id_for_label }}" class="form-label">Composer *</label>
+                    {{ form.composer }}
+                    {% if form.composer.errors %}
+                    <div class="text-danger small mt-1">{{ form.composer.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.split_percentage.id_for_label }}" class="form-label">Split % *</label>
+                    <div class="input-group">
+                        {{ form.split_percentage }}
+                        <span class="input-group-text">%</span>
+                    </div>
+                    {% if form.split_percentage.errors %}
+                    <div class="text-danger small mt-1">{{ form.split_percentage.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-plus me-1"></i> Add Composer
+                    </button>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                <div class="text-danger small mt-1">{{ form.notes.errors }}</div>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Quick Add New Composer -->
+    <div class="apache-card">
+        <h3><i class="fas fa-user-plus me-2" style="color: var(--apache-gold);"></i>Quick Add New Composer</h3>
+        <hr class="bg-gold">
+
+        <form method="post" action="{% url 'artist_logs:quick_add_composer' %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'artist_logs:add_composer_to_song' song.id %}">
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="first_name" class="form-label">First Name</label>
+                    <input type="text" class="form-control" id="first_name" name="first_name" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="last_name" class="form-label">Last Name</label>
+                    <input type="text" class="form-control" id="last_name" name="last_name" required>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-info w-100">
+                        <i class="fas fa-user-plus me-1"></i> Add New Composer
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Back to Song Edit -->
+    <div class="mt-4">
+        <a href="{% url 'artist_logs:song_edit' song.id %}" class="btn btn-outline-light">
+            <i class="fas fa-arrow-left me-1"></i> Back to Edit Song
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Your existing CSS */
+    .bg-gold {
+        background-color: var(--apache-gold) !important;
+        height: 2px;
+    }
+
+    .text-gold {
+        color: var(--apache-gold) !important;
+    }
+
+    .table-dark {
+        --bs-table-bg: var(--apache-surface);
+        --bs-table-color: var(--apache-light);
+        --bs-table-border-color: var(--apache-border);
+    }
+
+    /* Form styling */
+    .form-select,
+    select {
+        background-color: var(--apache-dark) !important;
+        color: #ffffff !important;
+        border: 1px solid var(--apache-border) !important;
+    }
+
+    .form-select option,
+    select option {
+        background-color: var(--apache-surface) !important;
+        color: #ffffff !important;
+    }
+
+    .input-group-text {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--apache-border);
+        color: var(--apache-light);
+    }
+</style>
+{% endblock %}

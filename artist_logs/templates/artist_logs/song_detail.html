@@ -1,4 +1,5 @@
 {% extends 'artist_logs/base.html' %}
+{% load custom_filters %}  <!-- Load the custom filters -->
 
 {% block title %}{{ song.title }} - Apache Music{% endblock %}
 
@@ -7,10 +8,15 @@
     <!-- Header with Back Button -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1><i class="fas fa-music me-2" style="color: var(--apache-gold);"></i>{{ song.title }}</h1>
+            <h1>
+                <i class="fas fa-music me-2" style="color: var(--apache-gold);"></i>{{ song.title }}
+            </h1>
             <p class="text-muted mb-0">
                 {% if song.code %}Code: {{ song.code }}{% endif %}
                 {% if song.catalogue_number %} | Catalogue: {{ song.catalogue_number }}{% endif %}
+                {% if song.has_multiple_composers %}
+                | <span class="badge bg-warning" style="color: var(--apache-dark);">Multiple Composers</span>
+                {% endif %}
             </p>
         </div>
         <div>
@@ -50,6 +56,85 @@
                     <strong>License Number:</strong> {{ song.license_number|default:"-" }}
                 </div>
                 <div class="mb-3">
+                    <strong>Created:</strong> {{ song.created_at|date:"d M Y H:i" }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Composers Card -->
+    <div class="apache-card mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3><i class="fas fa-users me-2" style="color: var(--apache-gold);"></i>Composer(s)</h3>
+            <a href="{% url 'artist_logs:add_composer_to_song' song.id %}" class="btn btn-outline-gold btn-sm">
+                <i class="fas fa-plus me-1"></i> Add/Edit Composers
+            </a>
+        </div>
+        <hr class="bg-gold">
+
+        {% with song_composers=song.song_composers.all %}
+            {% if song_composers %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Composer</th>
+                                <th>Split %</th>
+                                <th>Estimated Earnings</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sc in song_composers %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'artist_logs:composer_detail' sc.composer.id %}" class="text-gold">
+                                        {% if forloop.first %}
+                                        <i class="fas fa-star me-1" style="color: var(--apache-gold);" title="Primary Composer"></i>
+                                        {% endif %}
+                                        {{ sc.composer.full_name }}
+                                    </a>
+                                </td>
+                                <td {% if sc.split_percentage < 5 %}class="text-warning"{% endif %}>
+                                    {{ sc.split_percentage }}%
+                                </td>
+                                <td title="£{{ total_earnings|floatformat:2 }} × {{ sc.split_percentage }}%">
+                                    £{{ total_earnings|multiply:sc.split_percentage|floatformat:2 }}
+                                </td>
+                                <td>{{ sc.notes|default:"-" }}</td>
+                                <td>
+                                    <form method="post" action="{% url 'artist_logs:remove_composer_from_song' song.id sc.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Remove">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-dark">
+                            <tr>
+                                <td><strong>Total:</strong></td>
+                                <td><strong>{{ song.total_split_percentage }}%</strong></td>
+                                <td><strong>£{{ total_earnings|floatformat:2 }}</strong></td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                {% if song.total_split_percentage != 100 %}
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Total split percentage is {{ song.total_split_percentage }}% (should be 100%)
+                </div>
+                {% endif %}
+
+            {% else %}
+                <!-- Fallback to legacy composer if no splits -->
+                <div class="mb-3">
                     <strong>Composer:</strong>
                     {% if song.composer %}
                     <a href="{% url 'artist_logs:composer_detail' song.composer.id %}" class="text-gold">
@@ -59,8 +144,12 @@
                     <span class="text-muted">No composer assigned</span>
                     {% endif %}
                 </div>
-            </div>
-        </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-1"></i>
+                    This song has a single composer. Click "Add/Edit Composers" to add multiple composers with splits.
+                </div>
+            {% endif %}
+        {% endwith %}
     </div>
 
     <!-- Financial Summary Card -->
@@ -107,6 +196,80 @@
         </div>
     </div>
 
+    <!-- Royalty Distribution Card (only show if multiple composers) -->
+    {% with song_composers=song.song_composers.all %}
+        {% if song_composers and song_composers.count > 1 %}
+        <div class="apache-card mb-4">
+            <h3><i class="fas fa-chart-pie me-2" style="color: var(--apache-gold);"></i>Royalty Distribution</h3>
+            <hr class="bg-gold">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>By PRS Record</h5>
+                    <p class="text-muted small">How royalties from each PRS record would be split</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Composer</th>
+                                    <th>Split %</th>
+                                    <th>Example Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sc in song_composers %}
+                                <tr>
+                                    <td>{{ sc.composer.full_name }}</td>
+                                    <td>{{ sc.split_percentage }}%</td>
+                                    <td>
+                                        £{{ 1000|multiply:sc.split_percentage|floatformat:2 }}
+                                        <div class="text-muted small">(for £1000 royalty)</div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-dark">
+                                <tr>
+                                    <td><strong>Total:</strong></td>
+                                    <td><strong>{{ song.total_split_percentage }}%</strong></td>
+                                    <td><strong>£1000.00</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h5>Total Earnings</h5>
+                    <p class="text-muted small">Total earnings distributed to each composer</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Composer</th>
+                                    <th>Total Earnings</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sc in song_composers %}
+                                <tr>
+                                    <td>{{ sc.composer.full_name }}</td>
+                                    <td>£{{ total_earnings|multiply:sc.split_percentage|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-dark">
+                                <tr>
+                                    <td><strong>Total:</strong></td>
+                                    <td><strong>£{{ total_earnings|floatformat:2 }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    {% endwith %}
+
     <!-- PRS Records Table -->
     <div class="apache-card">
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -124,6 +287,9 @@
                         <th>Source</th>
                         <th>Income Type</th>
                         <th>Royalty Payable</th>
+                        {% if song.has_multiple_composers %}
+                        <th>Composer Shares</th>
+                        {% endif %}
                         <th>Paid</th>
                         <th>Actions</th>
                     </tr>
@@ -135,6 +301,18 @@
                         <td>{{ record.source_name|default:"-" }}</td>
                         <td>{{ record.income_type_name|default:"-" }}</td>
                         <td>£{{ record.royalty_payable|floatformat:2 }}</td>
+                        {% if song.has_multiple_composers %}
+                        <td>
+                            {% with song_composers=song.song_composers.all %}
+                                {% for sc in song_composers %}
+                                <div class="small">
+                                    {{ sc.composer.full_name }}:
+                                    £{{ record.royalty_payable|multiply:sc.split_percentage|floatformat:2 }}
+                                </div>
+                                {% endfor %}
+                            {% endwith %}
+                        </td>
+                        {% endif %}
                         <td>
                             {% if record.is_paid %}
                             <span class="status-badge status-success">Paid</span>
@@ -150,7 +328,9 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">No PRS records found for this song.</td>
+                        <td colspan="{% if song.has_multiple_composers %}7{% else %}6{% endif %}" class="text-center text-muted py-4">
+                            No PRS records found for this song.
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -164,11 +344,21 @@
             <a href="{% url 'artist_logs:song_edit' song.id %}" class="btn btn-primary">
                 <i class="fas fa-edit me-1"></i> Edit Song
             </a>
-            {% if song.composer %}
-            <a href="{% url 'artist_logs:composer_detail' song.composer.id %}" class="btn btn-outline-gold">
-                <i class="fas fa-user-music me-1"></i> View Composer
-            </a>
-            {% endif %}
+            {% with song_composers=song.song_composers.all %}
+                {% if song_composers %}
+                    {% for sc in song_composers %}
+                    <a href="{% url 'artist_logs:composer_detail' sc.composer.id %}" class="btn btn-outline-gold">
+                        <i class="fas fa-user-music me-1"></i> View {{ sc.composer.first_name|default:sc.composer.full_name }}
+                    </a>
+                    {% endfor %}
+                {% else %}
+                    {% if song.composer %}
+                    <a href="{% url 'artist_logs:composer_detail' song.composer.id %}" class="btn btn-outline-gold">
+                        <i class="fas fa-user-music me-1"></i> View Composer
+                    </a>
+                    {% endif %}
+                {% endif %}
+            {% endwith %}
             <a href="{% url 'artist_logs:song_list' %}" class="btn btn-outline-light">
                 <i class="fas fa-list me-1"></i> All Songs
             </a>
@@ -179,14 +369,10 @@
 
 {% block extra_css %}
 <style>
-    /* Custom styles for song detail page */
+    /* Your existing CSS */
     .bg-gold {
         background-color: var(--apache-gold) !important;
         height: 2px;
-    }
-
-    .border-gold {
-        border: 1px solid var(--apache-gold) !important;
     }
 
     .text-gold {
@@ -201,6 +387,45 @@
         --bs-table-bg: var(--apache-surface);
         --bs-table-color: var(--apache-light);
         --bs-table-border-color: var(--apache-border);
+    }
+
+    /* Status Badges */
+    .status-badge {
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .status-success {
+        background-color: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+    }
+
+    .status-warning {
+        background-color: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+    }
+
+    /* Composer table styling */
+    .composer-table th {
+        background-color: var(--apache-surface);
+        color: var(--apache-light);
+        border-bottom: 1px solid var(--apache-border);
+    }
+
+    .composer-table td {
+        border-bottom: 1px solid var(--apache-border);
+    }
+
+    .composer-table tfoot td {
+        background-color: var(--apache-surface);
+        font-weight: 600;
+    }
+
+    /* Low percentage warning */
+    .text-warning {
+        color: #ffc107 !important;
     }
 </style>
 {% endblock %}
