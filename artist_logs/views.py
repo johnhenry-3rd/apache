@@ -1,47 +1,397 @@
-# artist_logs/views.py
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.db import models, transaction
-from django.db.models import Q, Sum, Count, Case, When, F, Min
-from django.db.models.functions import Lower
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.views.decorators.http import require_POST, require_http_methods
-from django.http import JsonResponse, FileResponse
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
-from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.utils import timezone
-from django.conf import settings
-import pandas as pd
-import plotly.express as px
+# =============================================
+# STANDARD LIBRARY IMPORTS
+# =============================================
 import csv
 import hashlib
-import time
 import json
+import logging
 import os
-from datetime import datetime
-from io import StringIO
-from collections import defaultdict
 import re
-from datetime import datetime, date
+import time
+from collections import defaultdict
+from datetime import datetime, date, timedelta
 from decimal import Decimal
+from io import StringIO, TextIOWrapper
+from decimal import Decimal, InvalidOperation
+
+
+# =============================================
+# THIRD-PARTY IMPORTS
+# =============================================
+import pandas as pd
+import plotly.express as px
+
+# =============================================
+# DJANGO IMPORTS
+# =============================================
+from django.conf import settings
+from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.serializers import serialize, deserialize
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db import (
+    connection, transaction, IntegrityError, models
+)
+from django.db.models import (
+    Q, Sum, Count, Case, When, F, Min, FloatField,
+    ExpressionWrapper, Prefetch
+)
+from django.db.models.functions import Lower
+from django.http import (
+    JsonResponse, FileResponse, HttpResponse
+)
+from django.shortcuts import (
+    render, redirect, get_object_or_404
+)
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import (
+    require_http_methods, require_POST
+)
+
+from django.db.models import Q, Sum
+from django.http import JsonResponse
+import csv
+from io import TextIOWrapper
+from .models import Prs_data
+from datetime import datetime
 from django.db import transaction
 from django.views.decorators.http import require_POST
 from django.shortcuts import redirect
-from django.db.models import Q
-from django.core.serializers import serialize, deserialize
-from django.core.serializers.json import DjangoJSONEncoder
+from django.utils import timezone
+from django.http import StreamingHttpResponse
 
-# Import all models
-from .models import (
-    Prs_data, UploadHistory, Source, Song, IncomeType, Artist,
-    Composer, PaymentStatement, PaymentPlan, Song
+# =============================================
+# LOCAL APPLICATION IMPORTS
+# =============================================
+from .forms import (
+    ComposerForm, DataTableFilterForm, PaymentStatementForm,
+    PRSUploadForm, SongComposerForm, SongForm
 )
-from .forms import ComposerForm, SongForm, PaymentStatementForm
+from .models import (
+    Artist, Composer, IncomeType, PaymentPlan,
+    PaymentStatement, Prs_data, Song, SongComposer,
+    Source, UploadHistory
+)
+
+from django.contrib.auth.views import LoginView
+from django.urls import reverse_lazy
+
 
 # =============================================
-# Utility Functions
+# LOGGING
 # =============================================
+logger = logging.getLogger(__name__)
+import logging
+
+# =============================================
+#Constants and Helper functions
+# =============================================
+
+# Constants
+BATCH_SIZE = 1000
+REQUIRED_CSV_FIELDS = ['Song Code', 'Song Title', 'Amount Collected']
+
+# =============================================
+# CSV TO MODEL FIELD MAPPING (Single Definition)
+# =============================================
+# In your views.py
+CSV_TO_MODEL = {
+    'Client Code': 'client_code',
+    'Client Name': 'client_name',
+    'Payee Code': 'payee_code',
+    'Payee Name': 'payee_name',
+    'Song Code': 'song_code',
+    'Song Title': 'song_title',
+    'Composers': 'composers',
+    'Source Code': 'source_code',
+    'Source Name': 'source_name',
+    'Income Type': 'income_type_code',
+    'Income Type Name': 'income_type_name',
+    'Main Income Type Name': 'main_income_type_name',
+    'Catalogue No': 'catalogue_no',
+    'Units': 'units',
+    'Income Period': 'income_period',
+    'Percentage Collected by BMG': 'percentage_collected',
+    'Amount Collected': 'amount_collected',
+    'Royalty Payout Percentage': 'royalty_payout_percentage',
+    'Royalty Payable': 'royalty_payable',
+    'Domestic Or Foreign Source Indicator': 'domestic_or_foreign',
+    'Foreign Source': 'foreign_source',
+    'Statement ID Year': 'statement_id_year',
+    'Statement ID Number': 'statement_id_number',
+    'Royalty Country Code': 'royalty_country_code',
+    'Royalty Country Description': 'royalty_country_description',
+    'Artist': 'artist',
+    'ISRC': 'isrc',
+    'Album Or Production': 'album_or_production',
+    'Episode': 'episode',
+    'License Number': 'license_number',
+    'Original Source As Received': 'original_source_as_received',
+    'Original Source': 'original_source',
+}
+
+# =============================================
+#Segment 1: Helper Functions
+# =============================================
+
+# =============================================
+# HELPER FUNCTIONS FOR CSV PROCESSING
+# =============================================
+
+def safe_decimal(value):
+    """Convert a value to Decimal safely, handling None, empty strings, etc."""
+    if value is None or value == '':
+        return Decimal('0')
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError, TypeError):
+        return Decimal('0')
+
+def read_file_content(csv_file):
+    """Read and decode file content."""
+    from django.core.files.uploadedfile import InMemoryUploadedFile
+    from io import StringIO
+
+    if isinstance(csv_file, InMemoryUploadedFile):
+        file_content = csv_file.read()
+        if isinstance(file_content, bytes):
+            file_content = file_content.decode('utf-8-sig')
+        csv_file.seek(0)
+    else:
+        with csv_file.open('r', encoding='utf-8-sig') as f:
+            file_content = f.read()
+    return file_content
+
+def get_csv_preview(file_content):
+    """Generate a preview of the CSV file."""
+    import csv
+    from io import StringIO
+
+    try:
+        csv_data = StringIO(file_content)
+        reader = csv.DictReader(csv_data)
+        headers = reader.fieldnames or []
+        rows = [list(row.values())[:10] for _, row in zip(range(5), reader)]
+        return {'headers': headers, 'rows': rows}
+    except Exception as e:
+        logger.error(f"Error generating CSV preview: {str(e)}")
+        return {'headers': [], 'rows': []}
+
+def validate_csv_structure(fieldnames):
+    """Validate CSV has required fields."""
+    REQUIRED_CSV_FIELDS = ['Song Code', 'Song Title', 'Royalty Payable']
+    missing = [f for f in REQUIRED_CSV_FIELDS if f not in fieldnames]
+    return missing
+
+def parse_composer_splits(composers_text):
+    """
+    Parse composer splits and return percentages as FLOATS (not Decimals)
+    """
+    if not composers_text:
+        return []
+
+    composers_text = composers_text.strip()
+    splits = []
+
+    # Case 1: Percentage-based splits
+    if '%' in composers_text:
+        parts = [p.strip() for p in composers_text.split(',')]
+        for part in parts:
+            if '%' in part:
+                last_percent_idx = part.rfind('%')
+                name_part = part[:last_percent_idx].strip()
+                percentage = float(part[last_percent_idx+1:].strip())  # ✅ Return as float
+
+                if '/' in name_part:
+                    names = [n.strip() for n in name_part.split('/')]
+                    for name in names:
+                        splits.append((name, percentage / len(names)))  # ✅ float / int → float
+                else:
+                    splits.append((name_part, percentage))
+            else:
+                splits.append((part, 100.0))  # ✅ float
+
+    # Case 2: Slash-separated names
+    elif '/' in composers_text:
+        names = [name.strip() for name in composers_text.split('/')]
+        split = 100.0 / len(names)  # ✅ float
+        splits = [(name, split) for name in names]
+
+    # Case 3: Simple name
+    else:
+        splits = [(composers_text, 100.0)]  # ✅ float
+
+    return splits
+
+    # Normalize percentages to ensure they sum to 100
+    total = sum(p for _, p in splits)
+    if total > 0 and abs(total - 100) > 0.01:  # Allow small floating point differences
+        # Scale all percentages to sum to 100
+        factor = 100.0 / total
+        splits = [(name, percentage * factor) for name, percentage in splits]
+
+    return splits
+
+# =============================================
+#Segment 2: Row Processing Function
+# =============================================
+
+def process_prs_row(row, line_num, existing_song_codes, source_cache, income_type_cache):
+    """
+    Process a single CSV row and return:
+    - prs_data: Prs_data instance (or None if error)
+    - new_song_codes: Set of new song codes to add to cache
+    - errors: List of error messages
+    """
+    errors = []
+    new_song_codes = set()
+    prs_data = None
+
+    try:
+        # Skip empty rows
+        if not row.get('Song Title', '').strip():
+            return None, new_song_codes, ["Skipped empty row"]
+
+        # --- Handle Song ---
+        song_code = row.get('Song Code', '').strip()
+        if not song_code:
+            return None, new_song_codes, [f"Row {line_num}: Missing Song Code"]
+
+        song_title = row.get('Song Title', '').strip()
+        if song_code not in existing_song_codes:
+            song = Song.objects.create(code=song_code, title=song_title)
+            existing_song_codes.add(song_code)
+            new_song_codes.add(song_code)
+        else:
+            song = Song.objects.get(code=song_code)
+
+        # --- Handle Source ---
+        source_name = row.get('Source Name', '').strip()
+        source_code = row.get('Source Code', '').strip()
+        if source_code not in source_cache:
+            source = Source.objects.create(code=source_code, name=source_name)
+            source_cache[source_code] = source
+        else:
+            source = source_cache[source_code]
+
+        # --- Handle IncomeType ---
+        income_type_name = row.get('Main Income Type Name', '').strip()
+        income_type_code = row.get('Income Type', '').strip()
+        if income_type_code not in income_type_cache:
+            income_type = IncomeType.objects.create(
+                code=income_type_code,
+                name=income_type_name
+            )
+            income_type_cache[income_type_code] = income_type
+        else:
+            income_type = income_type_cache[income_type_code]
+
+        # --- Create or Update Prs_data ---
+        existing_prs = Prs_data.objects.filter(song_code=song_code).first()
+
+        if existing_prs:
+            # UPDATE EXISTING RECORD
+            existing_prs.units += int(row.get('Units', 0) or 0)
+            existing_prs.amount_collected += safe_decimal(row.get('Amount Collected', 0))
+            existing_prs.royalty_payable += safe_decimal(row.get('Royalty Payable', 0))
+
+            # Update all fields
+            existing_prs.song_title = song_title
+            existing_prs.song = song
+            existing_prs.song_code = song_code
+            existing_prs.source = source
+            existing_prs.source_code = source_code
+            existing_prs.source_name = source_name
+            existing_prs.income_type = income_type
+            existing_prs.income_type_code = income_type_code
+            existing_prs.income_type_name = row.get('Income Type Name', '').strip() or None
+            existing_prs.main_income_type_name = income_type_name
+            existing_prs.percentage_collected = safe_decimal(row.get('Percentage Collected by BMG', 0))
+            existing_prs.royalty_payout_percentage = float(row.get('Royalty Payout Percentage', 0) or 0)
+            existing_prs.domestic_or_foreign = row.get('Domestic Or Foreign Source Indicator', '').strip() or None
+            existing_prs.foreign_source = row.get('Foreign Source', '').strip() or None
+            existing_prs.royalty_country_code = row.get('Royalty Country Code', '').strip() or None
+            existing_prs.royalty_country_description = row.get('Royalty Country Description', '').strip() or None
+            existing_prs.statement_id_year = row.get('Statement ID Year', '').strip() or None
+            existing_prs.statement_id_number = row.get('Statement ID Number', '').strip() or None
+            existing_prs.income_period = row.get('Income Period', '').strip() or None
+            existing_prs.catalogue_no = row.get('Catalogue No ', '').strip() or None
+            existing_prs.composers = row.get('Composers', '').strip() or None
+            existing_prs.original_source_as_received = row.get('Original Source As Received', '').strip() or None
+            existing_prs.original_source = row.get('Original Source', '').strip() or None
+            existing_prs.artist = row.get('Artist', '').strip() or None
+            existing_prs.isrc = row.get('ISRC', '').strip() or None
+            existing_prs.album_or_production = row.get('Album Or Production', '').strip() or None
+            existing_prs.episode = row.get('Episode', '').strip() or None
+            existing_prs.license_number = row.get('License Number', '').strip() or None
+            existing_prs.is_paid = False
+
+            existing_prs.full_clean()
+            existing_prs.save()
+            return existing_prs, new_song_codes, errors
+
+        else:
+            # CREATE NEW RECORD
+            prs_data = Prs_data(
+                # Required fields
+                song_title=song_title,
+                units=int(row.get('Units', 0) or 0),
+                percentage_collected=safe_decimal(row.get('Percentage Collected by BMG', 0)),
+                amount_collected=safe_decimal(row.get('Amount Collected', 0)),
+                royalty_payout_percentage=float(row.get('Royalty Payout Percentage', 0) or 0),
+                royalty_payable=safe_decimal(row.get('Royalty Payable', 0)),
+                is_paid=False,
+
+                # Other fields
+                song=song,
+                song_code=song_code,
+                source=source,
+                source_code=source_code,
+                source_name=source_name,
+                domestic_or_foreign=row.get('Domestic Or Foreign Source Indicator', '').strip() or None,
+                foreign_source=row.get('Foreign Source', '').strip() or None,
+                royalty_country_code=row.get('Royalty Country Code', '').strip() or None,
+                royalty_country_description=row.get('Royalty Country Description', '').strip() or None,
+                income_type=income_type,
+                income_type_code=income_type_code,
+                income_type_name=row.get('Income Type Name', '').strip() or None,
+                main_income_type_name=income_type_name,
+                statement_id_year=row.get('Statement ID Year', '').strip() or None,
+                statement_id_number=row.get('Statement ID Number', '').strip() or None,
+                income_period=row.get('Income Period', '').strip() or None,
+                catalogue_no=row.get('Catalogue No ', '').strip() or None,
+                composers=row.get('Composers', '').strip() or None,
+                original_source_as_received=row.get('Original Source As Received', '').strip() or None,
+                original_source=row.get('Original Source', '').strip() or None,
+                artist=row.get('Artist', '').strip() or None,
+                isrc=row.get('ISRC', '').strip() or None,
+                album_or_production=row.get('Album Or Production', '').strip() or None,
+                episode=row.get('Episode', '').strip() or None,
+                license_number=row.get('License Number', '').strip() or None,
+            )
+
+            prs_data.full_clean()
+            prs_data.save()
+            return prs_data, new_song_codes, errors
+
+    except ValidationError as e:
+        errors.append(f"Row {line_num}: Validation error - {str(e)}")
+        logger.error(f"Validation error in row {line_num}: {str(e)}")
+        return None, new_song_codes, errors
+    except IntegrityError as e:
+        errors.append(f"Row {line_num}: Database error - {str(e)}")
+        logger.error(f"Database error in row {line_num}: {str(e)}")
+        return None, new_song_codes, errors
+    except Exception as e:
+        errors.append(f"Row {line_num}: Unexpected error - {str(e)}")
+        logger.error(f"Unexpected error in row {line_num}: {str(e)}")
+        return None, new_song_codes, errors
+
 
 def format_file_size(size):
     """Format file size in human-readable format"""
@@ -54,6 +404,66 @@ def format_file_size(size):
 # =============================================
 # Main Views
 # =============================================
+
+
+
+@require_http_methods(["GET", "POST"])
+def prs_admin(request):
+    """
+    View for the PRS admin page.
+    Displays upload form, history, and recent records.
+    """
+    # GET request: Display the page
+    if request.method == 'GET':
+        try:
+            # Get upload history
+            upload_history = UploadHistory.objects.select_related('user').all().order_by('-uploaded_at')[:20]
+
+            # Get recent records
+            recent_records = Prs_data.objects.select_related(
+                'song', 'source', 'income_type', 'payment_statement'
+            ).prefetch_related(
+                'song__composer', 'song__song_composers__composer'
+            ).order_by('-created_at')[:100]
+
+            # Get counts
+            counts = {
+                'prs_count': Prs_data.objects.count(),
+                'song_count': Song.objects.count(),
+                'source_count': Source.objects.count(),
+                'income_type_count': IncomeType.objects.count(),
+                'composer_count': Composer.objects.count(),
+                'payment_statement_count': PaymentStatement.objects.count(),
+            }
+
+            # Get recent payment statements
+            payment_statements = PaymentStatement.objects.all().order_by('-created_at')[:5]
+
+            # Close old connections
+            connection.close_if_unusable_or_obsolete()
+
+            return render(request, 'artist_logs/prs_admin.html', {
+                'upload_history': upload_history,
+                'recent_records': recent_records,
+                'form': PRSUploadForm(),
+                **counts,
+                'payment_statements': payment_statements,
+            })
+
+        except Exception as e:
+            messages.error(request, f"Error loading PRS admin page: {str(e)}")
+            return render(request, 'artist_logs/prs_admin.html', {
+                'form': PRSUploadForm(),
+                'error': str(e)
+            })
+
+    # POST request: Handle file upload
+    elif request.method == 'POST' and 'csv_file' in request.FILES:
+        return upload_prs_csv(request)  # Delegate to upload function
+
+    # If POST but no file
+    messages.error(request, "No file was uploaded")
+    return redirect('artist_logs:prs_admin')
 
 def front_page(request):
     """
@@ -96,30 +506,52 @@ def front_page(request):
         'top_songs': top_songs,
     })
 
+
+
 def data_table(request):
-    """View to display PRS data with filtering and pagination."""
-    # Get filter parameters from the request
-    artist_filter = request.GET.get('artist', '')
-    song_title_filter = request.GET.get('song_title', '')
-    source_filter = request.GET.get('source', '')
-    income_type_filter = request.GET.get('income_type', '')
+    """
+    View to display PRS data with advanced filtering, pagination, and PostgreSQL optimizations.
+    """
+    # Initialize form with GET data
+    form = DataTableFilterForm(request.GET or None)
 
-    # Start with all PRS data
-    prs_data_list = Prs_data.objects.all().order_by('-income_period', 'song_title')
+    # Start with a base queryset
+    prs_data_list = Prs_data.objects.select_related(
+        'song', 'source', 'income_type', 'payment_statement'
+    ).prefetch_related(
+        'song__composer', 'song__song_composers__composer'
+    ).order_by('-income_period', 'song_title')
 
-    # Apply filters
-    if artist_filter:
-        prs_data_list = prs_data_list.filter(artist__icontains=artist_filter)
-    if song_title_filter:
-        prs_data_list = prs_data_list.filter(song_title__icontains=song_title_filter)
-    if source_filter:
-        prs_data_list = prs_data_list.filter(source_name__icontains=source_filter)
-    if income_type_filter:
-        prs_data_list = prs_data_list.filter(income_type_name__icontains=income_type_filter)
+    # Only access cleaned_data after is_valid()
+    if form.is_valid():
+        # Apply filters from the form
+        if form.cleaned_data.get('artist'):
+            prs_data_list = prs_data_list.filter(
+                Q(artist__icontains=form.cleaned_data['artist']) |
+                Q(song__composer__full_name__icontains=form.cleaned_data['artist']) |
+                Q(song__song_composers__composer__full_name__icontains=form.cleaned_data['artist'])
+            ).distinct()
+
+        if form.cleaned_data.get('song_title'):
+            prs_data_list = prs_data_list.filter(
+                Q(song_title__icontains=form.cleaned_data['song_title']) |
+                Q(song__title__icontains=form.cleaned_data['song_title'])
+            ).distinct()
+
+        # ... [rest of your filter conditions] ...
+
+    # Calculate statistics
+    stats = prs_data_list.aggregate(
+        total_records=Count('id'),
+        total_earnings=Sum('royalty_payable'),
+        total_paid=Sum('royalty_payable', filter=Q(is_paid=True)),
+        total_unpaid=Sum('royalty_payable', filter=Q(is_paid=False)),
+    )
 
     # Pagination
-    paginator = Paginator(prs_data_list, 50)  # Show 50 records per page
+    paginator = Paginator(prs_data_list, 100)
     page = request.GET.get('page')
+
     try:
         prs_data = paginator.page(page)
     except PageNotAnInteger:
@@ -127,17 +559,24 @@ def data_table(request):
     except EmptyPage:
         prs_data = paginator.page(paginator.num_pages)
 
-    # Get unique sources and income types for the filter dropdowns
-    sources = Source.objects.all()
-    income_types = IncomeType.objects.all()
+    # Close any old database connections
+    connection.close_if_unusable_or_obsolete()
 
-    return render(request, 'artist_logs/data_table.html', {
+    # Prepare context
+    context = {
         'prs_data': prs_data,
-        'sources': sources,
-        'income_types': income_types,
+        'form': form,
+        'stats': {
+            'total_records': stats['total_records'] or 0,
+            'total_earnings': stats['total_earnings'] or 0,
+            'total_paid': stats['total_paid'] or 0,
+            'total_unpaid': stats['total_unpaid'] or 0,
+        },
         'is_paginated': paginator.num_pages > 1,
         'page_obj': prs_data,
-    })
+    }
+
+    return render(request, 'artist_logs/data_table.html', context)
 
 def charts(request):
     """
@@ -338,323 +777,480 @@ def dashboard(request):
 # PRS Admin Views
 # =============================================
 
-from django.http import JsonResponse
-from django.contrib import messages
-from django.views.decorators.http import require_http_methods
-from django.db import transaction
-from django.shortcuts import render, redirect
-from io import StringIO
-import csv
-import hashlib
-from artist_logs.models import (
-    Song, Composer, Prs_data, Source, IncomeType,
-    UploadHistory, Artist, PaymentStatement, PaymentPlan, SongComposer
-)
-import re
+@require_http_methods(["POST"])
+def upload_prs_csv(request):
+    # ======================
+    # INITIALIZE VARIABLES
+    # ======================
+    imported_count = 0
+    updated_count = 0
+    skipped_count = 0
+    errors = []
+    start_time = time.time()
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
-def parse_composer_splits(composers_text):
-    """
-    Parse composer splits from text.
-    Supports formats like:
-    - "Scott Green (60%), Theo Rivers (40%)"
-    - "Scott Green:60, Theo Rivers:40"
-    - "Scott Green, Theo Rivers" (equal split)
-    Returns a list of tuples: [(composer_name, percentage), ...]
-    """
-    if not composers_text:
-        return []
+    # ======================
+    # AUTHENTICATION CHECK
+    # ======================
+    if not request.user.is_authenticated:
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': 'Authentication required'}, status=401)
+        return redirect('login')
 
-    splits = []
+    # ======================
+    # FILE VALIDATION
+    # ======================
+    if 'csv_file' not in request.FILES:
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': 'No file uploaded'}, status=400)
+        messages.error(request, "No file uploaded")
+        return redirect('artist_logs:prs_admin')
 
-    # Pattern 1: "Name (XX%)"
-    pattern1 = r'([^(]+)\s*\((\d+)%\)'
-    matches = re.findall(pattern1, composers_text)
-    for name, percentage in matches:
-        splits.append((name.strip(), float(percentage)))
-
-    # If no matches with pattern 1, try pattern 2: "Name:XX"
-    if not splits:
-        pattern2 = r'([^:]+):(\d+)'
-        matches = re.findall(pattern2, composers_text)
-        for name, percentage in matches:
-            splits.append((name.strip(), float(percentage)))
-
-    # If still no matches, assume equal split
-    if not splits:
-        names = [name.strip() for name in composers_text.replace(';', ',').replace('/', ',').split(',') if name.strip()]
-        if names:
-            percentage = 100.0 / len(names)
-            for name in names:
-                splits.append((name, percentage))
-
-    # Normalize percentages to sum to 100 if they don't
-    total = sum(p for _, p in splits)
-    if total > 0 and total != 100:
-        factor = 100.0 / total
-        splits = [(name, p * factor) for name, p in splits]
-
-    return splits
-
-@require_http_methods(["GET", "POST"])
-def prs_admin(request):
-    """
-    View for uploading CSV files, tracking upload history, and displaying recent records.
-    Handles both AJAX uploads (with progress tracking) and regular form submissions.
-    Now supports multiple composers per song with royalty splits.
-    """
-    # --- Handle CSV upload ---
-    if request.method == 'POST' and 'csv_file' in request.FILES:
+    try:
+        # ======================
+        # READ AND VALIDATE FILE
+        # ======================
         csv_file = request.FILES['csv_file']
-        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        file_content = csv_file.read().decode('utf-8-sig')  # Handle Excel CSV encoding
+        file_hash = hashlib.md5(file_content.encode()).hexdigest()
 
-        if not csv_file.name.endswith('.csv'):
+        # Debug logging
+        logger.debug(f"File size: {len(file_content)} bytes")
+        logger.debug(f"File preview: {file_content[:500]}")
+
+        # Check for empty file
+        if not file_content.strip():
+            errors.append("File is empty")
             if is_ajax:
-                return JsonResponse({
-                    'success': False,
-                    'message': 'Please upload a CSV file.'
-                }, status=400)
-            else:
-                messages.error(request, "Please upload a CSV file.")
-                return redirect('artist_logs:prs_admin')
+                return JsonResponse({'success': False, 'message': 'File is empty', 'errors': errors}, status=400)
+            messages.error(request, "File is empty")
+            return redirect('artist_logs:prs_admin')
 
-        try:
-            # --- Check for duplicate uploads ---
-            if isinstance(csv_file, InMemoryUploadedFile):
-                csv_file.seek(0)
-                file_content = csv_file.read()
-                file_hash = hashlib.md5(file_content).hexdigest()
-                csv_file.seek(0)
-            else:
-                with open(csv_file.temporary_file_path(), 'rb') as f:
-                    file_content = f.read()
-                    file_hash = hashlib.md5(file_content).hexdigest()
+        # ======================
+        # PREPARE CSV READER
+        # ======================
+        csv_io = StringIO(file_content)
+        reader = csv.DictReader(csv_io)
 
-            if UploadHistory.objects.filter(file_hash=file_hash).exists():
-                if is_ajax:
-                    return JsonResponse({
-                        'success': False,
-                        'message': f"This file ('{csv_file.name}') has already been uploaded and processed."
-                    }, status=400)
-                else:
-                    messages.error(request, f"❌ This file ('{csv_file.name}') has already been uploaded and processed.")
-                    return redirect('artist_logs:prs_admin')
+        # Log headers for debugging
+        headers = reader.fieldnames
+        logger.debug(f"CSV Headers: {headers}")
 
-            # --- Read CSV data for preview and processing ---
-            csv_data = csv_file.read().decode('utf-8-sig')
-            csv_file.seek(0)
+        # Skip empty rows and check for data
+        non_empty_rows = [row for row in reader if any(row.values())]
+        if not non_empty_rows:
+            errors.append("No valid data rows found")
+            if is_ajax:
+                return JsonResponse({'success': False, 'message': 'No valid data rows found', 'errors': errors}, status=400)
+            messages.error(request, "No valid data rows found")
+            return redirect('artist_logs:prs_admin')
 
-            csv_io = StringIO(csv_data)
-            reader = csv.DictReader(csv_io)
-            fieldnames = reader.fieldnames
+        # Reset reader with only non-empty rows
+        csv_io = StringIO(file_content)
+        reader = csv.DictReader(csv_io)
 
-            # Create preview data (first 10 columns, first 5 rows)
-            csv_io.seek(0)
-            reader = csv.DictReader(csv_io)
-            preview = [fieldnames[:10]] if fieldnames else []
-            for i, row in enumerate(reader):
-                if i >= 5:
-                    break
-                preview_row = []
-                for field in fieldnames[:10]:
-                    preview_row.append(row.get(field, ''))
-                preview.append(preview_row)
+        # ======================
+        # INITIALIZE CACHES
+        # ======================
+        existing_song_codes = set(Prs_data.objects.values_list('song_code', flat=True))
+        source_cache = {s.code: s for s in Source.objects.all()}
+        income_type_cache = {i.code: i for i in IncomeType.objects.all()}
 
-            # Reset for processing
-            csv_io = StringIO(csv_data)
-            reader = csv.DictReader(csv_io)
+        # ======================
+        # PROCESS ROWS IN TRANSACTION
+        # ======================
+        with transaction.atomic():
+            for row in reader:
+                try:
+                    # Skip completely empty rows
+                    if not any(row.values()):
+                        skipped_count += 1
+                        continue
 
-            # CSV-to-model field mapping
-            csv_to_model = {
-                'Client Code': 'client_code',
-                'Client Name': 'client_name',
-                'Payee Code': 'payee_code',
-                'Payee Name': 'payee_name',
-                'Song Code': 'song_code',
-                'Song Title': 'song_title',
-                'Composers': 'composers',
-                'Source Code': 'source_code',
-                'Source Name': 'source_name',
-                'Income Type': 'income_type_code',
-                'Income Type Name': 'income_type_name',
-                'Main Income Type Name': 'main_income_type_name',
-                'Catalogue No ': 'catalogue_no',
-                'Units': 'units',
-                'Income Period': 'income_period',
-                'Percentage Collected by BMG': 'percentage_collected',
-                'Amount Collected': 'amount_collected',
-                'Royalty Payout Percentage': 'royalty_payout_percentage',
-                'Royalty Payable': 'royalty_payable',
-                'Domestic Or Foreign Source Indicator': 'domestic_or_foreign',
-                'Foreign Source': 'foreign_source',
-                'Statement ID Year': 'statement_id_year',
-                'Statement ID Number': 'statement_id_number',
-                'Royalty Country Code': 'royalty_country_code',
-                'Royalty Country Description': 'royalty_country_description',
-                'Artist': 'artist',
-                'ISRC': 'isrc',
-                'Album Or Production': 'album_or_production',
-                'Episode': 'episode',
-                'License Number': 'license_number',
-                'Original Source As Received': 'original_source_as_received',
-                'Original Source': 'original_source',
-            }
+                    # ======================
+                    # MAP CSV TO MODEL FIELDS
+                    # ======================
+                    mapped_row = {}
+                    for csv_header, model_field in CSV_TO_MODEL.items():
+                        value = row.get(csv_header, '').strip() if csv_header in row else ''
+                        mapped_row[model_field] = value
 
-            # Check for required fields
-            required_csv_fields = ['Song Title', 'Royalty Payable']
-            missing = [field for field in required_csv_fields if field not in fieldnames]
-            if missing:
-                if is_ajax:
-                    return JsonResponse({
-                        'success': False,
-                        'message': f"CSV file is missing required fields: {', '.join(missing)}"
-                    }, status=400)
-                else:
-                    messages.error(request, f"CSV file is missing required fields: {', '.join(missing)}")
-                    return redirect('artist_logs:prs_admin')
+                    # Debug: Log first row
+                    if reader.line_num == 2:  # First data row
+                        logger.debug(f"First data row: {mapped_row}")
 
-            imported_count = 0
-            skipped_count = 0
-            errors = []
+                    # ======================
+                    # EXTRACT AND VALIDATE FIELDS
+                    # ======================
+                    song_code = mapped_row.get('song_code', '').strip()
+                    if not song_code:
+                        errors.append(f"Row {reader.line_num}: Missing Song Code")
+                        continue
 
-            with transaction.atomic():
-                for row in reader:
-                    try:
-                        # Skip empty rows
-                        if not row.get('Song Title', '').strip():
-                            skipped_count += 1
-                            continue
+                    song_title = mapped_row.get('song_title', '').strip()
+                    catalogue_no = mapped_row.get('catalogue_no', '').strip()
+                    isrc = mapped_row.get('isrc', '').strip()
+                    album = mapped_row.get('album_or_production', '').strip()
+                    episode = mapped_row.get('episode', '').strip()
+                    license_number = mapped_row.get('license_number', '').strip()
+                    composers_text = mapped_row.get('composers', '').strip()
+                    artist = mapped_row.get('artist', '').strip()
 
-                        # Map CSV row to model fields
-                        mapped_row = {}
-                        for csv_header, model_field in csv_to_model.items():
-                            if csv_header in row:
-                                value = row[csv_header].strip() if row[csv_header] else ''
-                                mapped_row[model_field] = value
+                    # ======================
+                    # HANDLE SOURCE
+                    # ======================
+                    source_code = mapped_row.get('source_code', '').strip()
+                    source_name = mapped_row.get('source_name', '').strip()
+                    domestic_or_foreign = mapped_row.get('domestic_or_foreign', '').strip()
+                    foreign_source = mapped_row.get('foreign_source', '').strip()
+                    country_code = mapped_row.get('royalty_country_code', '').strip()
+                    country_name = mapped_row.get('royalty_country_description', '').strip()
+                    is_domestic = domestic_or_foreign == 'D' if domestic_or_foreign else True
 
-                        # --- Handle Source ---
-                        source_code = mapped_row.get('source_code', '')
-                        source_name = mapped_row.get('source_name', '')
-                        country_code = mapped_row.get('royalty_country_code', '')
-                        country_name = mapped_row.get('royalty_country_description', '')
-                        foreign_source = mapped_row.get('foreign_source', '')
-                        original_source = mapped_row.get('original_source_as_received', '')
-                        domestic_or_foreign = mapped_row.get('domestic_or_foreign', '')
+                    source, _ = Source.objects.get_or_create(
+                        code=source_code if source_code else "UNKNOWN",
+                        defaults={
+                            'name': source_name if source_name else "Unknown Source",
+                            'is_domestic': is_domestic,
+                            'country_code': country_code,
+                            'country_name': country_name,
+                            'foreign_source': foreign_source,
+                        }
+                    )
 
-                        is_domestic = domestic_or_foreign == 'D' if domestic_or_foreign else True
+                    # ======================
+                    # HANDLE INCOME TYPE
+                    # ======================
+                    income_type_code = mapped_row.get('income_type_code', '').strip()
+                    income_type_name = mapped_row.get('income_type_name', '').strip()
+                    main_income_type = mapped_row.get('main_income_type_name', '').strip()
 
-                        source, _ = Source.objects.get_or_create(
-                            code=source_code if source_code else "UNKNOWN",
-                            defaults={
-                                'name': source_name if source_name else "Unknown Source",
-                                'is_domestic': is_domestic,
-                                'country_code': country_code,
-                                'country_name': country_name,
-                                'foreign_source': foreign_source,
-                                'original_source': original_source
-                            }
-                        )
+                    income_type, _ = IncomeType.objects.get_or_create(
+                        code=income_type_code if income_type_code else "UNKNOWN",
+                        defaults={
+                            'name': income_type_name if income_type_name else "Unknown Income Type",
+                            'main_type': main_income_type
+                        }
+                    )
 
-                        # --- Handle IncomeType ---
-                        income_type_code = mapped_row.get('income_type_code', '')
-                        income_type_name = mapped_row.get('income_type_name', '')
-                        main_income_type = mapped_row.get('main_income_type_name', '')
+                    # ======================
+                    # HANDLE SONG
+                    # ======================
+                    song, created = Song.objects.get_or_create(
+                        code=song_code,
+                        defaults={
+                            'title': song_title,
+                            'catalogue_number': catalogue_no,
+                            'isrc': isrc,
+                            'album_or_production': album,
+                            'episode': episode,
+                            'license_number': license_number,
+                        }
+                    )
 
-                        income_type, _ = IncomeType.objects.get_or_create(
-                            code=income_type_code if income_type_code else "UNKNOWN",
-                            defaults={
-                                'name': income_type_name if income_type_name else "Unknown Income Type",
-                                'main_type': main_income_type
-                            }
-                        )
+                    # Update song fields if they've changed
+                    if not created:
+                        update_fields = []
+                        for field, value in [
+                            ('title', song_title),
+                            ('catalogue_number', catalogue_no),
+                            ('isrc', isrc),
+                            ('album_or_production', album),
+                            ('episode', episode),
+                            ('license_number', license_number),
+                        ]:
+                            if getattr(song, field) != value:
+                                setattr(song, field, value)
+                                update_fields.append(field)
 
-                        # --- Handle Song ---
-                        song_code = mapped_row.get('song_code', '').strip() or None
-                        song_title = mapped_row.get('song_title', '').strip()
-                        catalogue_no = mapped_row.get('catalogue_no', '').strip()
-                        isrc = mapped_row.get('isrc', '').strip()
-                        album = mapped_row.get('album_or_production', '').strip()
-                        episode = mapped_row.get('episode', '').strip()
-                        license_number = mapped_row.get('license_number', '').strip()
-                        composers_text = mapped_row.get('composers', '').strip()
+                        if update_fields:
+                            song.save(update_fields=update_fields)
 
-                        # Create or get the song
-                        song, created = Song.objects.get_or_create(
-                            code=song_code,
-                            defaults={
-                                'title': song_title,
-                                'catalogue_number': catalogue_no,
-                                'isrc': isrc,
-                                'album_or_production': album,
-                                'episode': episode,
-                                'license_number': license_number,
-                            }
-                        )
+                    # ======================
+                    # HANDLE SONG
+                    # ======================
+                    song, created = Song.objects.get_or_create(
+                        code=song_code,
+                        defaults={
+                            'title': song_title,
+                            'catalogue_number': catalogue_no,
+                            'isrc': isrc,
+                            'album_or_production': album,
+                            'episode': episode,
+                            'license_number': license_number,
+                        }
+                    )
 
-                        # Update song fields if they've changed
-                        if not created:
-                            if song.title != song_title:
-                                song.title = song_title
-                            if song.catalogue_number != catalogue_no:
-                                song.catalogue_number = catalogue_no
-                            if song.isrc != isrc:
-                                song.isrc = isrc
-                            if song.album_or_production != album:
-                                song.album_or_production = album
-                            if song.episode != episode:
-                                song.episode = episode
-                            if song.license_number != license_number:
-                                song.license_number = license_number
-                            song.save()
+                    # Update song fields if they've changed
+                    if not created:
+                        update_fields = []
+                        for field, value in [
+                            ('title', song_title),
+                            ('catalogue_number', catalogue_no),
+                            ('isrc', isrc),
+                            ('album_or_production', album),
+                            ('episode', episode),
+                            ('license_number', license_number),
+                        ]:
+                            if getattr(song, field) != value:
+                                setattr(song, field, value)
+                                update_fields.append(field)
 
-                        # --- Handle Composers with Splits ---
-                        if composers_text:
-                            try:
-                                # Parse composer splits
-                                splits = parse_composer_splits(composers_text)
+                        if update_fields:
+                            song.save(update_fields=update_fields)
 
-                                # Clear existing composers for this song
-                                song.song_composers.all().delete()
+                    # ======================
+                    # HANDLE COMPOSERS
+                    # ======================
+                    if composers_text:
+                        try:
+                            from decimal import Decimal  # Ensure Decimal is imported
 
-                                # Add new composers with splits
-                                for composer_name, percentage in splits:
-                                    # Parse the name
+                            splits = parse_composer_splits(composers_text)
+                            song.song_composers.all().delete()  # Clear existing composer splits
+
+                            first_composer = None  # Initialize to track the first composer
+
+                            for composer_name, percentage in splits:
+                                percentage = Decimal(str(percentage))  # Ensure percentage is Decimal
+
+                                if '/' in composer_name:
+                                    # Handle slash-separated names (e.g., "Coupe/Downes")
+                                    names = [name.strip() for name in composer_name.split('/')]
+                                    split_per_name = percentage / Decimal(len(names))  # Equal split
+
+                                    for i, name in enumerate(names):
+                                        parts = name.split()
+                                        first_name = ' '.join(parts[:-1]) if len(parts) > 1 else ''
+                                        last_name = parts[-1] if parts else ''
+
+                                        composer, _ = Composer.objects.get_or_create(
+                                            first_name=first_name,
+                                            last_name=last_name,
+                                            defaults={'full_name': name}
+                                        )
+
+                                        SongComposer.objects.create(
+                                            song=song,
+                                            composer=composer,
+                                            split_percentage=float(split_per_name)  # Convert to float for storage
+                                        )
+
+                                        # Set the very first composer as the legacy composer
+                                        if first_composer is None:
+                                            first_composer = composer
+
+                                else:
+                                    # Handle single composer name
                                     parts = composer_name.split()
-                                    if len(parts) > 1:
-                                        first_name = ' '.join(parts[:-1])
-                                        last_name = parts[-1]
-                                    else:
-                                        first_name = ''
-                                        last_name = parts[0]
+                                    first_name = ' '.join(parts[:-1]) if len(parts) > 1 else ''
+                                    last_name = parts[-1] if parts else ''
 
-                                    # Get or create the composer
                                     composer, _ = Composer.objects.get_or_create(
                                         first_name=first_name,
                                         last_name=last_name,
                                         defaults={'full_name': composer_name}
                                     )
 
-                                    # Create SongComposer record
                                     SongComposer.objects.create(
                                         song=song,
                                         composer=composer,
-                                        split_percentage=percentage
+                                        split_percentage=float(percentage)  # Convert to float for storage
                                     )
 
-                                # Set the first composer as the legacy composer for backward compatibility
-                                if song.song_composers.exists():
-                                    song.composer = song.song_composers.first().composer
+                                    # Set the first composer as the legacy composer
+                                    if first_composer is None:
+                                        first_composer = composer
+
+                            # After processing all composers, set the legacy composer
+                            if first_composer:
+                                try:
+                                    song.composer = first_composer
                                     song.save(update_fields=['composer'])
+                                except Exception as e:
+                                    errors.append(f"Row {reader.line_num}: Failed to set legacy composer - {str(e)}")
+                                    logger.error(f"Legacy composer error: {str(e)}")
 
-                            except Exception as e:
-                                errors.append(f"Error processing composer splits for song {song_code}: {str(e)}")
-                                # Continue with the PRS data creation even if composer splits fail
+                        except Exception as e:
+                            errors.append(f"Row {reader.line_num}: Composer error - {str(e)}")
+                            logger.error(f"Composer processing error: {str(e)}")
 
-                        # --- Create Prs_data (ALLOWS DUPLICATES) ---
-                        prs_data = Prs_data.objects.create(
+                    # ======================
+                    # HANDLE PRS DATA
+                    # ======================
+                    from decimal import Decimal
+
+                    # Convert all numeric values to Decimal for consistency
+                    try:
+                        units = int(mapped_row.get('units', 0) or 0)
+                    except (ValueError, TypeError):
+                        units = 0
+
+                    try:
+                        amount_collected = Decimal(str(mapped_row.get('amount_collected', 0) or 0))
+                    except (ValueError, TypeError):
+                        amount_collected = Decimal('0')
+
+                    try:
+                        royalty_payable = Decimal(str(mapped_row.get('royalty_payable', 0) or 0))
+                    except (ValueError, TypeError):
+                        royalty_payable = Decimal('0')
+
+                    try:
+                        percentage_collected = Decimal(str(mapped_row.get('percentage_collected', 0) or 0))
+                        percentage_collected = percentage_collected.quantize(Decimal('0.01'))  # ✅ Round to 2 decimal places
+                    except (ValueError, TypeError, InvalidOperation):
+                        percentage_collected = Decimal('0.00')  # ✅ Default to 0.00
+
+                    try:
+                        royalty_payout_percentage = Decimal(str(mapped_row.get('royalty_payout_percentage', 0) or 0))
+                        royalty_payout_percentage = royalty_payout_percentage.quantize(Decimal('0.01'))
+                    except (ValueError, TypeError):
+                        royalty_payout_percentage = Decimal('0.00')
+
+                    income_period = mapped_row.get('income_period', '').strip()
+                    statement_id_year = mapped_row.get('statement_id_year', '').strip()
+                    statement_id_number = mapped_row.get('statement_id_number', '').strip()
+
+                    # ✅ Check if song_code exists (required by constraint)
+                    if not song_code:
+                        errors.append(f"Row {reader.line_num}: Missing Song Code - cannot create record")
+                        continue
+
+                    # ✅ OPTIONAL: Check for existing record with same key fields to update
+                    # This is optional - remove if you always want to create new records
+                    existing_prs = Prs_data.objects.filter(
+                        song_code=song_code,
+                        income_period=income_period,
+                        source_code=source_code,
+                        income_type_code=income_type_code
+                    ).first()
+
+                    if existing_prs:
+                        # UPDATE EXISTING RECORD
+                        existing_prs.units += units
+                        existing_prs.amount_collected += amount_collected
+                        existing_prs.royalty_payable += royalty_payable
+                        existing_prs.percentage_collected = percentage_collected
+                        existing_prs.royalty_payout_percentage = royalty_payout_percentage
+                        # Update all other fields
+                        existing_prs.song = song
+                        existing_prs.song_title = song_title
+                        existing_prs.artist = artist
+                        existing_prs.isrc = isrc
+                        existing_prs.album_or_production = album
+                        existing_prs.episode = episode
+                        existing_prs.license_number = license_number
+                        existing_prs.composers = composers_text
+                        existing_prs.source = source
+                        existing_prs.source_name = source_name
+                        existing_prs.domestic_or_foreign = domestic_or_foreign
+                        existing_prs.foreign_source = foreign_source
+                        existing_prs.royalty_country_code = country_code
+                        existing_prs.royalty_country_description = country_name
+                        existing_prs.income_type = income_type
+                        existing_prs.income_type_name = income_type_name
+                        existing_prs.main_income_type_name = main_income_type
+                        existing_prs.statement_id_year = statement_id_year
+                        existing_prs.statement_id_number = statement_id_number
+                        existing_prs.catalogue_no = catalogue_no
+                        existing_prs.original_source_as_received = mapped_row.get('original_source_as_received', '').strip() or None
+                        existing_prs.original_source = mapped_row.get('original_source', '').strip() or None
+                        existing_prs.is_paid = False
+
+                        try:
+                            existing_prs.full_clean()
+                            existing_prs.save()
+                            updated_count += 1
+                        except ValidationError as e:
+                            errors.append(f"Row {reader.line_num}: Validation error updating - {str(e)}")
+                            logger.error(f"Update error: {str(e)}")
+                            continue
+                    else:
+                        # CREATE NEW RECORD
+                        try:
+                            prs_data = Prs_data(
+                                song=song,
+                                song_code=song_code,
+                                song_title=song_title,
+                                units=units,
+                                percentage_collected=percentage_collected,
+                                amount_collected=amount_collected,
+                                royalty_payout_percentage=royalty_payout_percentage,
+                                royalty_payable=royalty_payable,
+                                is_paid=False,
+                                source=source,
+                                source_code=source_code,
+                                source_name=source_name,
+                                domestic_or_foreign=domestic_or_foreign,
+                                foreign_source=foreign_source,
+                                royalty_country_code=country_code,
+                                royalty_country_description=country_name,
+                                income_type=income_type,
+                                income_type_code=income_type_code,
+                                income_type_name=income_type_name,
+                                main_income_type_name=main_income_type,
+                                statement_id_year=statement_id_year,
+                                statement_id_number=statement_id_number,
+                                income_period=income_period,
+                                catalogue_no=catalogue_no,
+                                composers=composers_text,
+                                artist=artist,
+                                isrc=isrc,
+                                album_or_production=album,
+                                episode=episode,
+                                license_number=license_number,
+                                original_source_as_received=mapped_row.get('original_source_as_received', '').strip() or None,
+                                original_source=mapped_row.get('original_source', '').strip() or None,
+                            )
+                            prs_data.full_clean()
+                            prs_data.save()
+                            imported_count += 1
+                            existing_song_codes.add(song_code)
+                        except ValidationError as e:
+                            errors.append(f"Row {reader.line_num}: Validation error creating - {str(e)}")
+                            logger.error(f"Create error: {str(e)}")
+                            continue
+
+                    # Check for existing PRS record
+                    existing_prs = Prs_data.objects.filter(
+                        song_code=song_code,
+                        source=source,
+                        income_type=income_type,
+                        income_period=income_period,
+                        statement_id_year=statement_id_year,
+                        statement_id_number=statement_id_number
+                    ).first()
+
+                    if existing_prs:
+                        # UPDATE EXISTING RECORD
+                        existing_prs.units += units
+                        existing_prs.amount_collected += amount_collected
+                        existing_prs.royalty_payable += royalty_payable
+                        existing_prs.percentage_collected = percentage_collected
+                        existing_prs.royalty_payout_percentage = royalty_payout_percentage
+                        existing_prs.song = song
+                        existing_prs.artist = artist
+                        existing_prs.isrc = isrc
+                        existing_prs.album_or_production = album
+                        existing_prs.episode = episode
+                        existing_prs.license_number = license_number
+                        existing_prs.composers = composers_text
+                        existing_prs.full_clean()
+                        existing_prs.save()
+                        updated_count += 1
+                    else:
+                        # CREATE NEW RECORD
+                        prs_data = Prs_data(
                             song=song,
-                            song_title=song_title,
                             song_code=song_code,
-                            income_period=mapped_row.get('income_period', ''),
+                            song_title=song_title,
+                            units=units,
+                            percentage_collected=percentage_collected,
+                            amount_collected=amount_collected,
+                            royalty_payout_percentage=royalty_payout_percentage,
+                            royalty_payable=royalty_payable,
+                            is_paid=False,
                             source=source,
                             source_code=source_code,
                             source_name=source_name,
@@ -666,109 +1262,118 @@ def prs_admin(request):
                             income_type_code=income_type_code,
                             income_type_name=income_type_name,
                             main_income_type_name=main_income_type,
-                            units=int(mapped_row.get('units', 0)) if mapped_row.get('units') else 0,
-                            percentage_collected=float(mapped_row.get('percentage_collected', 0)) if mapped_row.get('percentage_collected') else 0.00,
-                            amount_collected=float(mapped_row.get('amount_collected', 0)) if mapped_row.get('amount_collected') else 0.00,
-                            royalty_payout_percentage=float(mapped_row.get('royalty_payout_percentage', 0)) if mapped_row.get('royalty_payout_percentage') else 0.00,
-                            royalty_payable=float(mapped_row.get('royalty_payable', 0)) if mapped_row.get('royalty_payable') else 0.00,
-                            statement_id_year=mapped_row.get('statement_id_year', ''),
-                            statement_id_number=mapped_row.get('statement_id_number', ''),
+                            statement_id_year=statement_id_year,
+                            statement_id_number=statement_id_number,
+                            income_period=income_period,
                             catalogue_no=catalogue_no,
                             composers=composers_text,
-                            artist=mapped_row.get('artist', ''),
+                            artist=artist,
                             isrc=isrc,
                             album_or_production=album,
                             episode=episode,
                             license_number=license_number,
-                            original_source_as_received=original_source,
-                            original_source=mapped_row.get('original_source', ''),
-                            is_paid=False,
+                            original_source_as_received=mapped_row.get('original_source_as_received', '').strip() or None,
+                            original_source=mapped_row.get('original_source', '').strip() or None,
                         )
+                        prs_data.full_clean()
+                        prs_data.save()
                         imported_count += 1
+                        existing_song_codes.add(song_code)
 
-                    except Exception as e:
-                        errors.append(f"Error importing row {reader.line_num}: {str(e)}")
-                        continue
+                except ValidationError as e:
+                    errors.append(f"Row {reader.line_num}: Validation error - {str(e)}")
+                    logger.error(f"Validation error in row {reader.line_num}: {str(e)}")
+                    continue
+                except IntegrityError as e:
+                    errors.append(f"Row {reader.line_num}: Database error - {str(e)}")
+                    logger.error(f"Database error in row {reader.line_num}: {str(e)}")
+                    continue
+                except Exception as e:
+                    errors.append(f"Row {reader.line_num}: Unexpected error - {str(e)}")
+                    logger.error(f"Unexpected error in row {reader.line_num}: {str(e)}")
+                    continue
 
-                # Create upload history record
-                UploadHistory.objects.create(
-                    file_name=csv_file.name,
-                    file_hash=file_hash,
-                    records_imported=imported_count,
-                    status="Success"
-                )
+        # ======================
+        # FINALIZE PROCESSING
+        # ======================
+        elapsed_time = time.time() - start_time
 
-            # Return appropriate response
-            if is_ajax:
-                return JsonResponse({
-                    'success': True,
-                    'message': f'✅ Successfully processed {imported_count} new records. '
-                               f'⏭️ Skipped {skipped_count} empty rows.',
-                    'preview': preview,
-                    'records_processed': imported_count
-                })
-            else:
-                if imported_count > 0:
-                    messages.success(request, f"✅ Successfully imported {imported_count} new records.")
-                if skipped_count > 0:
-                    messages.warning(request, f"⏭️ Skipped {skipped_count} empty rows.")
-                if errors:
-                    for error in errors[:10]:
-                        messages.error(request, error)
-                    if len(errors) > 10:
-                        messages.error(request, f"... and {len(errors) - 10} more errors.")
-                return redirect('artist_logs:prs_admin')
-
-        except Exception as e:
-            # Log failed upload
+        # Create upload history
+        status = "Success" if not errors else "Partial"
+        try:
             UploadHistory.objects.create(
                 file_name=csv_file.name,
-                file_hash=file_hash if 'file_hash' in locals() else "",
-                records_imported=0,
-                status="Failed",
-                error_message=str(e)
+                file_hash=file_hash,
+                records_imported=imported_count,
+                records_updated=updated_count,
+                status=status,
+                error_message="; ".join(errors[:10]) if errors else None,
+                uploaded_at=timezone.now(),
+                processed_at=timezone.now(),
+                user=request.user
             )
-            if is_ajax:
-                return JsonResponse({
-                    'success': False,
-                    'message': f"❌ An error occurred: {str(e)}"
-                }, status=500)
-            else:
-                messages.error(request, f"❌ An error occurred: {str(e)}")
-                return redirect('artist_logs:prs_admin')
+        except Exception as e:
+            logger.error(f"Failed to create upload history: {str(e)}")
 
-    # --- Display page (GET request) ---
-    upload_history = UploadHistory.objects.all().order_by('-uploaded_at')[:20]
-    recent_records = Prs_data.objects.all().select_related('song', 'source', 'income_type').order_by('-created_at')[:100]
+        # ======================
+        # RETURN RESPONSE
+        # ======================
+        if is_ajax:
+            return JsonResponse({
+                'success': True if not errors else False,
+                'message': f'Processed {imported_count + updated_count} records '
+                          f'({imported_count} new, {updated_count} updated, '
+                          f'{skipped_count} skipped) in {elapsed_time:.2f}s',
+                'imported_count': imported_count,
+                'updated_count': updated_count,
+                'skipped_count': skipped_count,
+                'errors': errors[:10]
+            })
+        else:
+            if imported_count > 0:
+                messages.success(request, f"✅ Imported {imported_count} new records")
+            if updated_count > 0:
+                messages.success(request, f"✅ Updated {updated_count} existing records")
+            if skipped_count > 0:
+                messages.warning(request, f"⏭️ Skipped {skipped_count} rows")
+            if errors:
+                for error in errors[:10]:
+                    messages.error(request, error)
+                if len(errors) > 10:
+                    messages.error(request, f"... and {len(errors) - 10} more errors")
 
-    # Get counts
-    prs_count = Prs_data.objects.count()
-    artist_count = Artist.objects.count()
-    source_count = Source.objects.count()
-    song_count = Song.objects.count()
-    income_type_count = IncomeType.objects.count()
-    composer_count = Composer.objects.count()
-    payment_statement_count = PaymentStatement.objects.count()
-    payment_plan_count = PaymentPlan.objects.count()
-    payment_statements = PaymentStatement.objects.all().order_by('-created_at')[:5]
+            return redirect('artist_logs:prs_admin')
 
-    return render(request, 'artist_logs/prs_admin.html', {
-        'upload_history': upload_history,
-        'recent_records': recent_records,
-        'prs_count': prs_count,
-        'artist_count': artist_count,
-        'source_count': source_count,
-        'song_count': song_count,
-        'income_type_count': income_type_count,
-        'composer_count': composer_count,
-        'payment_statement_count': payment_statement_count,
-        'payment_plan_count': payment_plan_count,
-        'payment_statements': payment_statements,
-    })
+    except Exception as e:
+        # ======================
+        # HANDLE EXCEPTIONS
+        # ======================
+        logger.exception("File processing failed")
+        elapsed_time = time.time() - start_time if 'start_time' in locals() else 0.0
 
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-from artist_logs.models import Song
+        try:
+            UploadHistory.objects.create(
+                file_name=csv_file.name if 'csv_file' in locals() else 'unknown',
+                file_hash=file_hash if 'file_hash' in locals() else '',
+                records_imported=0,
+                status='Failed',
+                error_message=str(e),
+                uploaded_at=timezone.now(),
+                user=request.user if request.user.is_authenticated else None
+            )
+        except:
+            pass
+
+        if is_ajax:
+            return JsonResponse({
+                'success': False,
+                'message': f'❌ Failed to process file: {str(e)}',
+                'errors': [str(e)]
+            }, status=500)
+        else:
+            messages.error(request, f"❌ Failed to process file: {str(e)}")
+            return redirect('artist_logs:prs_admin')
+
 
 def song_composer_splits(request, song_id):
     """
@@ -795,25 +1400,57 @@ def song_composer_splits(request, song_id):
 # Backup/Restore Views
 # =============================================
 
+
+
+# Add this helper function at the top of your views.py
+def restore_model_data(data):
+    """
+    Helper function to restore data from serialized backup.
+    """
+    # Define models in dependency order (parents first)
+    models_to_restore = [
+        ('IncomeType', IncomeType),
+        ('Source', Source),
+        ('Artist', Artist),
+        ('Composer', Composer),
+        ('Song', Song),
+        ('UploadHistory', UploadHistory),
+        ('PaymentStatement', PaymentStatement),
+        ('Prs_data', Prs_data),
+        ('PaymentPlan', PaymentPlan),
+    ]
+
+    for model_name, model in models_to_restore:
+        if model_name in data and data[model_name]:
+            try:
+                # Deserialize the data
+                serialized_data = json.dumps(data[model_name])
+                objects = deserialize('json', serialized_data)
+
+                # Save each object
+                for obj in objects:
+                    # Handle both new and existing objects
+                    obj.object.save()
+            except Exception as e:
+                print(f"Error restoring {model_name}: {str(e)}")
+                continue
+
 @require_POST
 def backup_database(request):
     """
-    Create a backup of all PRS-related data using manual serialization.
+    Create a backup of all PRS-related data using Django's serialization.
     This ensures a consistent format that can be properly verified and restored.
     """
     try:
-        from django.core.serializers import serialize
-        from django.core.serializers.json import DjangoJSONEncoder
-
         # Create backup directory if it doesn't exist
         backup_dir = os.path.join(settings.BASE_DIR, 'backups')
         os.makedirs(backup_dir, exist_ok=True)
 
         # Generate backup filename with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
         backup_file = os.path.join(backup_dir, f'prs_backup_{timestamp}.json')
 
-        # Get all model data using manual serialization
+        # Get all model data using Django's serialization
         data = {}
 
         # Define models in dependency order (parents first)
@@ -843,11 +1480,12 @@ def backup_database(request):
 
         # Add metadata
         data['metadata'] = {
-            'backup_date': datetime.now().isoformat(),
+            'backup_date': timezone.now().isoformat(),
             'django_version': getattr(settings, 'DJANGO_VERSION', 'unknown'),
             'app_version': '1.0',
-            'backup_method': 'manual_serialization',
-            'model_count': len(models_to_backup)
+            'backup_method': 'django_serialization',
+            'model_count': len(models_to_backup),
+            'created_by': str(request.user) if request.user.is_authenticated else 'system'
         }
 
         # Write to file with proper JSON formatting
@@ -866,7 +1504,7 @@ def backup_database(request):
 def restore_database(request):
     """
     Restore database from a specific backup file.
-    Only handles manual serialization format backups.
+    Only handles Django serialization format backups.
     """
     backup_filename = request.POST.get('backup_filename')
 
@@ -886,14 +1524,14 @@ def restore_database(request):
         with open(backup_path, 'r') as f:
             data = json.load(f)
 
-        # Check if this is a valid manual serialization backup
+        # Check if this is a valid Django serialization backup
         if not isinstance(data, dict) or 'metadata' not in data:
-            messages.error(request, f"❌ Backup file {backup_filename} is not in the expected format. Please create a new backup.")
+            messages.error(request, f"❌ Backup file {backup_filename} is not in the expected format.")
             return redirect('artist_logs:backup_list')
 
         # Check backup method
         backup_method = data.get('metadata', {}).get('backup_method', 'unknown')
-        if backup_method != 'manual_serialization':
+        if backup_method != 'django_serialization':
             messages.error(request, f"❌ Backup file {backup_filename} was created with {backup_method}. Please create a new backup with the current method.")
             return redirect('artist_logs:backup_list')
 
@@ -1160,10 +1798,7 @@ def composer_payment_history(request, pk):
 # Song Views
 # =============================================
 
-from django.shortcuts import render
-from django.db.models import Q, Sum
-from django.core.paginator import Paginator
-from .models import Song, Composer
+
 
 def song_list(request):
     """
@@ -1248,32 +1883,116 @@ def song_list(request):
         'has_multiple_composers_filter': has_multiple_composers,
     })
 
+
+
 def song_detail(request, pk):
     """
-    Show details for a single song.
+    Show details for a single song with PostgreSQL optimizations.
+    Includes comprehensive data about PRS records, composers, and earnings.
     """
-    song = get_object_or_404(Song, pk=pk)
+    # Get the song with optimized queries
+    song = get_object_or_404(
+        Song.objects.prefetch_related(
+            Prefetch('song_composers', queryset=SongComposer.objects.select_related('composer').order_by('-split_percentage')),
+            Prefetch('prs_records', queryset=Prs_data.objects.select_related('source', 'income_type', 'payment_statement').order_by('-income_period'))
+        )
+    )
 
-    # Get all PRS records for this song
-    prs_records = Prs_data.objects.filter(song=song).order_by('-income_period')
+    # Get PRS records with optimized query
+    prs_records = song.prs_records.all()
 
-    # Calculate totals
-    total_earnings = prs_records.aggregate(total=Sum('royalty_payable'))['total'] or 0
-    unpaid_earnings = prs_records.filter(is_paid=False).aggregate(total=Sum('royalty_payable'))['total'] or 0
-    paid_earnings = prs_records.filter(is_paid=True).aggregate(total=Sum('royalty_payable'))['total'] or 0
+    # Calculate totals using PostgreSQL aggregation
+    totals = prs_records.aggregate(
+        total_earnings=Sum('royalty_payable'),
+        paid_earnings=Sum('royalty_payable', filter=Q(is_paid=True)),
+        unpaid_earnings=Sum('royalty_payable', filter=Q(is_paid=False)),
+        total_records=Count('id'),
+        paid_records=Count('id', filter=Q(is_paid=True)),
+        unpaid_records=Count('id', filter=Q(is_paid=False)),
+        avg_royalty=ExpressionWrapper(
+            Sum('royalty_payable') / Count('id'),
+            output_field=FloatField()
+        )
+    )
 
-    return render(request, 'artist_logs/song_detail.html', {
+    # Calculate earnings by various dimensions using PostgreSQL
+    earnings_by_period = list(
+        prs_records.values('income_period')
+        .annotate(total=Sum('royalty_payable'))
+        .order_by('income_period')
+    )
+
+    earnings_by_source = list(
+        prs_records.values('source__name')
+        .annotate(total=Sum('royalty_payable'))
+        .order_by('-total')
+    )
+
+    earnings_by_income_type = list(
+        prs_records.values('income_type__name')
+        .annotate(total=Sum('royalty_payable'))
+        .order_by('-total')
+    )
+
+    # Calculate composer earnings using PostgreSQL
+    composer_earnings = []
+    for sc in song.song_composers.all().select_related('composer'):
+        # Calculate earnings for this composer using PostgreSQL
+        composer_total = prs_records.aggregate(
+            total=Sum(
+                ExpressionWrapper(
+                    F('royalty_payable') * (sc.split_percentage / 100),
+                    output_field=FloatField()
+                )
+            )
+        )['total'] or 0
+
+        composer_earnings.append({
+            'composer': sc.composer,
+            'split_percentage': sc.split_percentage,
+            'earnings': composer_total,
+            'notes': sc.notes,
+            'is_primary': sc == song.song_composers.first()
+        })
+
+    # Get recent payment statements
+    recent_payments = PaymentStatement.objects.filter(
+        prs_records__song=song
+    ).distinct().order_by('-statement_date')[:5]
+
+    # Get composer form for adding/editing composers
+    composer_form = SongComposerForm()
+    composer_form.song = song  # Set the song for the form
+
+    # Close any old database connections to prevent "database is locked" errors
+    connection.close_if_unusable_or_obsolete()
+
+    # Prepare context
+    context = {
         'song': song,
         'prs_records': prs_records,
-        'total_earnings': total_earnings,
-        'unpaid_earnings': unpaid_earnings,
-        'paid_earnings': paid_earnings,
-    })
+        'totals': {
+            'total_earnings': totals['total_earnings'] or 0,
+            'paid_earnings': totals['paid_earnings'] or 0,
+            'unpaid_earnings': totals['unpaid_earnings'] or 0,
+            'total_records': totals['total_records'] or 0,
+            'paid_records': totals['paid_records'] or 0,
+            'unpaid_records': totals['unpaid_records'] or 0,
+            'avg_royalty': totals['avg_royalty'] or 0,
+        },
+        'earnings_by_period': earnings_by_period,
+        'earnings_by_source': earnings_by_source,
+        'earnings_by_income_type': earnings_by_income_type,
+        'composer_earnings': composer_earnings,
+        'recent_payments': recent_payments,
+        'composer_form': composer_form,
+        'has_multiple_composers': song.has_multiple_composers,
+        'total_split_percentage': song.total_split_percentage,
+        'is_fully_split': song.is_fully_split,
+    }
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib import messages
-from .models import Song, Composer
-from .forms import SongForm, SongComposerForm
+    return render(request, 'artist_logs/song_detail.html', context)
+
 
 def song_create(request):
     """
@@ -1471,10 +2190,7 @@ def composer_payment_history(request, pk):
 # Payment Statement Views
 # =============================================
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib import messages
-from .models import PaymentStatement
-from .forms import PaymentStatementForm
+
 
 def create_payment_statement(request):
     """
@@ -1715,48 +2431,80 @@ def backup_list(request):
             for filename in sorted(os.listdir(backup_dir), reverse=True):
                 if filename.startswith('prs_backup_') and filename.endswith('.json'):
                     filepath = os.path.join(backup_dir, filename)
-                    stat = os.stat(filepath)
-
-                    # Initialize metadata with defaults
-                    metadata = {
-                        'backup_date': 'Unknown',
-                        'django_version': 'Unknown',
-                        'app_version': 'Unknown'
-                    }
-
-                    # Try to read metadata from the backup file
                     try:
-                        with open(filepath, 'r') as f:
-                            # Read the first 10KB to check if it's valid JSON
-                            # (We don't need to load the entire file just to get metadata)
-                            first_part = f.read(10240)  # Read first 10KB
-                            try:
-                                data = json.loads(first_part)
-                                if 'metadata' in data:
-                                    metadata = data['metadata']
-                            except json.JSONDecodeError as e:
-                                print(f"JSON decode error in {filename}: {str(e)}")
-                                # File is not valid JSON, but we'll still list it
-                                metadata['error'] = f"Invalid JSON: {str(e)}"
-                    except Exception as e:
-                        print(f"Error reading {filename}: {str(e)}")
-                        metadata['error'] = f"Read error: {str(e)}"
+                        stat = os.stat(filepath)
 
-                    backups.append({
-                        'filename': filename,
-                        'size': stat.st_size,
-                        'modified': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
-                        'size_formatted': format_file_size(stat.st_size),
-                        'backup_date': metadata.get('backup_date', 'Unknown'),
-                        'has_error': 'error' in metadata,
-                        'error_message': metadata.get('error', '')
-                    })
+                        # Initialize metadata with defaults
+                        metadata = {
+                            'backup_date': None,
+                            'django_version': 'Unknown',
+                            'app_version': 'Unknown'
+                        }
+
+                        # Try to read metadata from the backup file
+                        try:
+                            with open(filepath, 'r') as f:
+                                first_part = f.read(10240)  # Read first 10KB
+                                try:
+                                    data = json.loads(first_part)
+                                    if 'metadata' in data:
+                                        backup_date_str = data['metadata'].get('backup_date')
+                                        if backup_date_str:
+                                            try:
+                                                # Handle ISO format with timezone
+                                                metadata['backup_date'] = datetime.fromisoformat(
+                                                    backup_date_str.replace('Z', '+00:00')
+                                                )
+                                            except ValueError:
+                                                metadata['backup_date'] = datetime.fromtimestamp(stat.st_mtime)
+                                        else:
+                                            metadata['backup_date'] = datetime.fromtimestamp(stat.st_mtime)
+                                        metadata.update({
+                                            'django_version': data['metadata'].get('django_version', 'Unknown'),
+                                            'app_version': data['metadata'].get('app_version', 'Unknown')
+                                        })
+                                except json.JSONDecodeError as e:
+                                    print(f"JSON decode error in {filename}: {str(e)}")
+                                    metadata['error'] = f"Invalid JSON: {str(e)}"
+                                    metadata['backup_date'] = datetime.fromtimestamp(stat.st_mtime)
+                        except Exception as e:
+                            print(f"Error reading {filename}: {str(e)}")
+                            metadata['error'] = f"Read error: {str(e)}"
+                            metadata['backup_date'] = datetime.fromtimestamp(stat.st_mtime)
+
+                        # Format the backup date for display
+                        backup_date_display = (
+                            metadata['backup_date'].strftime('%Y-%m-%d %H:%M:%S')
+                            if metadata['backup_date']
+                            else 'Unknown'
+                        )
+
+                        backups.append({
+                            'filename': filename,
+                            'size': stat.st_size,
+                            'modified': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
+                            'size_formatted': format_file_size(stat.st_size),
+                            'backup_date': backup_date_display,
+                            'backup_date_obj': metadata['backup_date'],
+                            'django_version': metadata.get('django_version', 'Unknown'),
+                            'app_version': metadata.get('app_version', 'Unknown'),
+                            'has_error': 'error' in metadata,
+                            'error_message': metadata.get('error', '')
+                        })
+                    except Exception as e:
+                        print(f"Error processing {filename}: {str(e)}")
+                        continue
+
         except Exception as e:
             print(f"Error listing backups: {str(e)}")
             messages.error(request, f"Error accessing backup directory: {str(e)}")
 
-    # Sort by filename (which includes timestamp) in reverse order
-    backups.sort(key=lambda x: x['filename'], reverse=True)
+    # Sort by backup_date_obj (newest first), fallback to modified date
+    backups.sort(
+        key=lambda x: x['backup_date_obj'] if x['backup_date_obj'] else
+        datetime.fromtimestamp(os.path.getmtime(os.path.join(backup_dir, x['filename']))),
+        reverse=True
+    )
 
     return render(request, 'artist_logs/backup_list.html', {
         'backups': backups,
@@ -1843,13 +2591,6 @@ def delete_backup(request, filename):
 
     return redirect('artist_logs:backup_list')
 
-def format_file_size(size):
-    """Format file size in human-readable format"""
-    for unit in ['B', 'KB', 'MB', 'GB']:
-        if size < 1024.0:
-            return f"{size:.1f} {unit}"
-        size /= 1024.0
-    return f"{size:.1f} TB"
 
 # =============================================
 # Mark as Paid/Unpaid Views
@@ -2112,14 +2853,6 @@ def backup_list(request):
         'backup_count': len(backups)
     })
 
-def format_file_size(size):
-    """Format file size in human-readable format"""
-    for unit in ['B', 'KB', 'MB', 'GB']:
-        if size < 1024.0:
-            return f"{size:.1f} {unit}"
-        size /= 1024.0
-    return f"{size:.1f} TB"
-
 
 def get_all_model_data():
     """
@@ -2258,11 +2991,7 @@ def download_backup(request, filename):
 # COMPOSER-SONG RELATIONSHIP VIEWS
 # ======================
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
-from django.contrib import messages
-from .models import Song, Composer, SongComposer
-from .forms import ComposerForm, SongComposerForm
+
 
 def composer_songs(request, pk):
     """
@@ -2283,10 +3012,7 @@ def composer_songs(request, pk):
         'total_earnings': total_earnings,
     })
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib import messages
-from .models import Song, Composer, SongComposer
-from .forms import SongComposerForm
+
 
 def add_composer_to_song(request, song_id):
     """
@@ -2400,3 +3126,17 @@ def payment_statement_detail(request, pk):
         'statement': statement,
         'prs_records': prs_records,
     })
+
+from django.http import HttpResponse
+
+def test_backup_list(request):
+    """Minimal test view to check template rendering"""
+    return render(request, 'artist_logs/backup_list.html', {
+        'backups': [],  # Empty list for testing
+        'backup_count': 0
+    })
+
+class CustomLoginView(LoginView):
+    template_name = 'registration/login.html'  # or your custom template
+    redirect_authenticated_user = True
+    next_page = reverse_lazy('prs_admin')  # Redirect to prs-admin after login

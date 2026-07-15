@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from artist_logs import views
 
 app_name = 'artist_logs'
 
@@ -69,6 +69,10 @@ urlpatterns = [
     path('verify-backup/<str:filename>/', views.verify_backup, name='verify_backup'),
     path('download-backup/<str:filename>/', views.download_backup, name='download_backup'),
     path('delete-backup/<str:filename>/', views.delete_backup, name='delete_backup'),
+    path('upload-prs-csv/', views.upload_prs_csv, name='upload_prs_csv'),
+    path('prs-admin/', views.prs_admin, name='prs_admin'),
+    path('test-backups/', views.test_backup_list, name='test_backup_list'),
+
 
     # ======================
     # QUICK ACTIONS

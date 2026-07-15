@@ -256,3 +256,194 @@ class PaymentStatementForm(forms.ModelForm):
                 raise forms.ValidationError("Periods must be numeric in YYYYMM format.")
 
         return cleaned_data
+    
+from django import forms
+from .models import Source, IncomeType, Song, Composer
+
+class DataTableFilterForm(forms.Form):
+    """
+    Form for filtering PRS data in the data table view.
+    """
+    artist = forms.CharField(
+        required=False,
+        label='Artist/Composer',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control apache-form',
+            'placeholder': 'Search by artist or composer...'
+        })
+    )
+
+    song_title = forms.CharField(
+        required=False,
+        label='Song Title',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control apache-form',
+            'placeholder': 'Search by song title...'
+        })
+    )
+
+    song_code = forms.CharField(
+        required=False,
+        label='Song Code',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control apache-form',
+            'placeholder': 'Search by song code...'
+        })
+    )
+
+    source = forms.CharField(
+        required=False,
+        label='Source',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control apache-form',
+            'placeholder': 'Search by source...'
+        })
+    )
+
+    income_type = forms.CharField(
+        required=False,
+        label='Income Type',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control apache-form',
+            'placeholder': 'Search by income type...'
+        })
+    )
+
+    income_period = forms.CharField(
+        required=False,
+        label='Income Period',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control apache-form',
+            'placeholder': 'e.g., 202604'
+        })
+    )
+
+    is_paid = forms.ChoiceField(
+        required=False,
+        label='Payment Status',
+        choices=[
+            ('', 'All'),
+            ('paid', 'Paid'),
+            ('unpaid', 'Unpaid'),
+        ],
+        widget=forms.Select(attrs={
+            'class': 'form-select apache-form'
+        })
+    )
+
+    min_amount = forms.DecimalField(
+        required=False,
+        label='Min Amount (£)',
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control apache-form',
+            'placeholder': 'Minimum royalty payable...',
+            'step': '0.01'
+        })
+    )
+
+    max_amount = forms.DecimalField(
+        required=False,
+        label='Max Amount (£)',
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control apache-form',
+            'placeholder': 'Maximum royalty payable...',
+            'step': '0.01'
+        })
+    )
+
+    start_date = forms.DateField(
+        required=False,
+        label='Start Date',
+        widget=forms.DateInput(attrs={
+            'class': 'form-control apache-form',
+            'type': 'date'
+        })
+    )
+
+    end_date = forms.DateField(
+        required=False,
+        label='End Date',
+        widget=forms.DateInput(attrs={
+            'class': 'form-control apache-form',
+            'type': 'date'
+        })
+    )
+
+    domestic_or_foreign = forms.ChoiceField(
+        required=False,
+        label='Source Type',
+        choices=[
+            ('', 'All'),
+            ('D', 'Domestic'),
+            ('F', 'Foreign'),
+        ],
+        widget=forms.Select(attrs={
+            'class': 'form-select apache-form'
+        })
+    )
+
+    has_composer_splits = forms.ChoiceField(
+        required=False,
+        label='Composer Splits',
+        choices=[
+            ('', 'All'),
+            ('yes', 'Has Multiple Composers'),
+            ('no', 'Single Composer'),
+        ],
+        widget=forms.Select(attrs={
+            'class': 'form-select apache-form'
+        })
+    )
+
+    sort_by = forms.ChoiceField(
+        required=False,
+        label='Sort By',
+        choices=[
+            ('-income_period', 'Newest First'),
+            ('income_period', 'Oldest First'),
+            ('-royalty_payable', 'Highest Earnings First'),
+            ('royalty_payable', 'Lowest Earnings First'),
+            ('song_title', 'Song Title A-Z'),
+            ('-song_title', 'Song Title Z-A'),
+            ('source_name', 'Source A-Z'),
+            ('-source_name', 'Source Z-A'),
+        ],
+        widget=forms.Select(attrs={
+            'class': 'form-select apache-form'
+        })
+    )
+
+from django import forms
+
+class PRSUploadForm(forms.Form):
+    """
+    Form for uploading PRS CSV files.
+    """
+    csv_file = forms.FileField(
+        label='CSV File',
+        help_text='Upload a CSV file containing PRS data. The file should include at least "Song Title" and "Royalty Payable" columns.',
+        widget=forms.FileInput(attrs={
+            'class': 'form-control apache-form',
+            'accept': '.csv',
+            'id': 'csv_file'
+        })
+    )
+
+from django import forms
+
+class PRSUploadForm(forms.Form):
+    """
+    Form for uploading PRS CSV files.
+    """
+    csv_file = forms.FileField(
+        label='CSV File',
+        help_text='Upload a CSV file containing PRS data. The file should include at least "Song Title" and "Royalty Payable" columns.',
+        widget=forms.FileInput(attrs={
+            'class': 'form-control apache-form',
+            'accept': '.csv',
+            'id': 'csv_file'
+        })
+    )
+

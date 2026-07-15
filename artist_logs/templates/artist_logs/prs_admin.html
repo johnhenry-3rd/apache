@@ -137,10 +137,6 @@
             <p>{{ prs_count }}</p>
         </div>
         <div class="stat-card">
-            <h3>Artists</h3>
-            <p>{{ artist_count }}</p>
-        </div>
-        <div class="stat-card">
             <h3>Songs</h3>
             <p>{{ song_count }}</p>
         </div>
@@ -162,93 +158,94 @@
         </div>
     </div>
 
-    <!-- CSV Upload Section with Progress Bar -->
-    <div class="upload-section">
-        <h2 class="upload-title">Upload PRS CSV File</h2>
-        <p class="upload-instructions">
-            Upload a CSV file containing PRS data. Duplicate files will be rejected.
-        </p>
-        <!-- Your existing upload form remains unchanged -->
-        <form id="csvUploadForm" method="post" enctype="multipart/form-data" class="file-upload-form">
-            {% csrf_token %}
-            <div class="file-input-container">
-                <label for="csv_file" class="file-input-label">Choose CSV File</label>
-                <span id="file-name" class="file-name">No file chosen</span>
-            </div>
-            <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
-            <button type="submit" class="upload-button" id="uploadButton">
-                <i class="fas fa-upload me-1"></i> Upload CSV
-            </button>
+<!-- CSV Upload Section with Progress Bar -->
+<div class="upload-section">
+    <h2 class="upload-title">Upload PRS CSV File</h2>
+    <p class="upload-instructions">
+        Upload a CSV file containing PRS data. Duplicate files will be allowed.
+    </p>
 
-            <!-- Progress Container -->
-            <div id="progressContainer">
-                <div class="d-flex justify-content-between mb-2">
-                    <span><i class="fas fa-spinner fa-spin me-2"></i>Uploading...</span>
-                    <span id="progressPercent">0%</span>
-                </div>
-                <div class="progress">
-                    <div id="progressBar" class="progress-bar" role="progressbar"
-                         style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                    </div>
-                </div>
-                <div class="text-center mt-2">
-                    <button type="button" class="btn btn-sm" id="cancelButton">
-                        <i class="fas fa-times me-1"></i> Cancel
-                    </button>
+    <form id="csvUploadForm" method="post" enctype="multipart/form-data"
+        action="{% url 'artist_logs:upload_prs_csv' %}" class="file-upload-form">
+        {% csrf_token %}
+        <div class="file-input-container">
+            <label for="csv_file" class="file-input-label">Choose CSV File</label>
+            <span id="file-name" class="file-name">No file chosen</span>
+        </div>
+        <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
+        <button type="submit" class="upload-button" id="uploadButton">
+            <i class="fas fa-upload me-1"></i> Upload CSV
+        </button>
+
+        <!-- Progress Container (hidden by default) -->
+        <div id="progressContainer" style="display: none; margin-top: 15px;">
+            <div class="d-flex justify-content-between mb-2">
+                <span><i class="fas fa-spinner fa-spin me-2"></i>Uploading...</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress" style="height: 20px;">
+                <div id="progressBar" class="progress-bar bg-success" role="progressbar"
+                     style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                 </div>
             </div>
-
-            <!-- Status Message -->
-            <div id="statusMessage" class="mt-2"></div>
-
-            <!-- Preview Container -->
-            <div id="previewContainer">
-                <div class="alert alert-info mt-3" style="color: rgba(255, 255, 255, 0.8);">
-                    <i class="fas fa-table me-2"></i> Preview of the first 5 rows:
-                </div>
-                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-                    <table class="preview-table">
-                        <thead>
-                            <tr id="previewHeaders"></tr>
-                        </thead>
-                        <tbody id="previewBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </form>
-
-        <!-- Testing Buttons -->
-        <div class="testing-buttons">
-            <div class="d-flex flex-wrap gap-2 mb-2">
-                <!-- Clear PRS Data & History Button -->
-                <form method="post" action="{% url 'artist_logs:clear_prs_data' %}" class="d-inline">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger btn-sm"
-                            onclick="return confirm('⚠️ WARNING: This will delete ALL PRS data and upload history. ✅ Composers and Songs will be PRESERVED. This cannot be undone! Are you sure?')">
-                        <i class="fas fa-trash me-1"></i> Clear PRS Data & History
-                    </button>
-                </form>
-
-                <!-- Backup Database Button -->
-                <form method="post" action="{% url 'artist_logs:backup_database' %}" class="d-inline">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary btn-sm"
-                            onclick="return confirm('Create a backup of all PRS data? This will save the current state of your database.')">
-                        <i class="fas fa-save me-1"></i> Backup Database
-                    </button>
-                </form>
-
-                <!-- View Backups Button -->
-                <a href="{% url 'artist_logs:backup_list' %}" class="btn btn-info btn-sm">
-                    <i class="fas fa-list me-1"></i> View Backups
-                </a>
-            </div>
-            <div class="form-text">
-                <i class="fas fa-info-circle me-1"></i>
-                Testing tools: Clear data preserves Composers/Songs. Backup creates a snapshot of your current data.
+            <div class="text-center mt-2">
+                <button type="button" class="btn btn-sm btn-outline-light" id="cancelButton">
+                    <i class="fas fa-times me-1"></i> Cancel
+                </button>
             </div>
         </div>
+
+        <!-- Status Message -->
+        <div id="statusMessage" class="mt-2"></div>
+
+        <!-- Preview Container (hidden by default) -->
+        <div id="previewContainer" style="display: none; margin-top: 20px;">
+            <div class="alert alert-info" style="color: rgba(255, 255, 255, 0.8);">
+                <i class="fas fa-table me-2"></i> Preview of the first 5 rows:
+            </div>
+            <div class="table-responsive" style="max-height: 300px; overflow-y: auto; background-color: rgba(255,255,255,0.05); border-radius: 5px;">
+                <table class="table table-dark table-sm preview-table">
+                    <thead>
+                        <tr id="previewHeaders"></tr>
+                    </thead>
+                    <tbody id="previewBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </form>
+
+    <!-- Testing Buttons -->
+    <div class="testing-buttons" style="margin-top: 30px;">
+        <div class="d-flex flex-wrap gap-2 mb-2">
+            <!-- Clear PRS Data & History Button -->
+            <form method="post" action="{% url 'artist_logs:clear_prs_data' %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm"
+                        onclick="return confirm('⚠️ WARNING: This will delete ALL PRS data and upload history. ✅ Composers and Songs will be PRESERVED. This cannot be undone! Are you sure?')">
+                    <i class="fas fa-trash me-1"></i> Clear PRS Data & History
+                </button>
+            </form>
+
+            <!-- Backup Database Button -->
+            <form method="post" action="{% url 'artist_logs:backup_database' %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-sm"
+                        onclick="return confirm('Create a backup of all PRS data? This will save the current state of your database.')">
+                    <i class="fas fa-save me-1"></i> Backup Database
+                </button>
+            </form>
+
+            <!-- View Backups Button -->
+            <a href="{% url 'artist_logs:backup_list' %}" class="btn btn-info btn-sm">
+                <i class="fas fa-list me-1"></i> View Backups
+            </a>
+        </div>
+        <div class="form-text" style="color: rgba(255,255,255,0.6);">
+            <i class="fas fa-info-circle me-1"></i>
+            Testing tools: Clear data preserves Composers/Songs. Backup creates a snapshot of your current data.
+        </div>
     </div>
+</div>
 
     <!-- Payment Statements Section -->
     <div class="payment-section">
@@ -466,7 +463,6 @@
 
 {% block extra_js %}
 <script>
-// Your existing JavaScript remains unchanged at the beginning
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -482,80 +478,178 @@ function getCookie(name) {
     return cookieValue;
 }
 
-const csrftoken = getCookie('csrftoken');
+function getCSRFToken() {
+    // Try to get from form first
+    const formToken = document.querySelector('#csvUploadForm [name=csrfmiddlewaretoken]');
+    if (formToken) return formToken.value;
+
+    // Fallback to cookie
+    return getCookie('csrftoken');
+}
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Your existing JavaScript for file upload remains unchanged
-    // ... (keep all your existing file upload code) ...
+    const uploadForm = document.getElementById('csvUploadForm');
+    const fileInput = document.getElementById('csv_file');
+    const fileNameDisplay = document.getElementById('file-name');
+    const uploadButton = document.getElementById('uploadButton');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressPercent = document.getElementById('progressPercent');
+    const statusMessage = document.getElementById('statusMessage');
+    const previewContainer = document.getElementById('previewContainer');
+    const cancelButton = document.getElementById('cancelButton');
 
-    // Add new JavaScript for composer splits modal
-    const composerSplitsModal = new bootstrap.Modal(document.getElementById('composerSplitsModal'));
-
-    // Add click handlers for song links to show composer splits
-    document.querySelectorAll('a[href*="/song/"]').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const songId = this.href.split('/').pop();
-            const songTitle = this.textContent.trim();
-
-            // Set the song title in the modal
-            document.getElementById('modalSongTitle').textContent = songTitle;
-
-            // Fetch composer splits for this song
-            fetch(`/artist_logs/song/${songId}/composer-splits/`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    let html = '';
-
-                    if (data.composers && data.composers.length > 0) {
-                        html += '<table class="table table-dark table-sm" style="color: var(--apache-light);">';
-                        html += '<thead><tr><th>Composer</th><th>Split %</th><th>Notes</th></tr></thead>';
-                        html += '<tbody>';
-
-                        data.composers.forEach(sc => {
-                            html += `<tr>
-                                <td>${sc.composer_name}</td>
-                                <td style="color: var(--apache-gold);">${sc.split_percentage}%</td>
-                                <td>${sc.notes || '-'}</td>
-                            </tr>`;
-                        });
-
-                        html += '</tbody></table>';
-                        html += `<div class="mt-3" style="color: var(--apache-gold);">
-                                    <strong>Total:</strong> ${data.total_percentage}%
-                                </div>`;
-                    } else {
-                        html += '<p class="text-muted">No composer information available for this song.</p>';
-                    }
-
-                    document.getElementById('composerSplitsContent').innerHTML = html;
-                    composerSplitsModal.show();
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    document.getElementById('composerSplitsContent').innerHTML =
-                        '<p class="text-danger">Error loading composer splits.</p>';
-                    composerSplitsModal.show();
-                });
-        });
+    fileInput.addEventListener('change', function() {
+        fileNameDisplay.textContent = this.files.length > 0
+            ? this.files[0].name
+            : 'No file chosen';
     });
 
-    // Add tooltip functionality for composer badges
-    document.querySelectorAll('.composer-badge').forEach(badge => {
-        badge.addEventListener('mouseenter', function() {
-            const composerName = this.querySelector('.name').textContent;
-            const percentage = this.querySelector('.percentage').textContent;
-            this.setAttribute('title', `${composerName}: ${percentage}`);
-        });
-    });
+    let xhr = null;
 
-    // Rest of your existing JavaScript remains unchanged
-    // ... (keep all your existing file upload and progress bar code) ...
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        statusMessage.innerHTML = '';
+        previewContainer.style.display = 'none';
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressPercent.textContent = '0%';
+        uploadButton.disabled = true;
+
+        const file = fileInput.files[0];
+        if (!file) {
+            showStatus('Please select a file first.', 'danger');
+            resetUI();
+            return;
+        }
+
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            showStatus('Please upload a CSV file.', 'danger');
+            resetUI();
+            return;
+        }
+
+        const formData = new FormData(uploadForm);
+        xhr = new XMLHttpRequest();
+
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percentComplete = Math.round((e.loaded / e.total) * 100);
+                progressBar.style.width = percentComplete + '%';
+                progressPercent.textContent = percentComplete + '%';
+            }
+        });
+
+        xhr.addEventListener('load', function() {
+            if (xhr.status === 401) {
+                showStatus('Please log in to upload files.', 'danger');
+                setTimeout(() => {
+                    window.location.href = '/accounts/login/?next=' + encodeURIComponent(window.location.pathname);
+                }, 2000);
+                resetUI();
+                return;
+
+            }
+
+            if (xhr.status === 302) {
+                const redirectUrl = xhr.getResponseHeader('Location');
+                if (redirectUrl) {
+                    showStatus('Redirecting...', 'warning');
+                    setTimeout(() => {
+                        window.location.href = redirectUrl;
+                    }, 1500);
+                } else {
+                    showStatus('Upload failed with redirect', 'danger');
+                }
+                resetUI();
+                return;
+            }
+
+            try {
+                const response = JSON.parse(xhr.responseText);
+
+                if (xhr.status === 200) {
+                    showStatus(response.message || 'File uploaded successfully!', 'success');
+
+                    if (response.preview && response.preview.headers && response.preview.rows) {
+                        previewContainer.style.display = 'block';
+                        renderPreview(response.preview.headers, response.preview.rows);
+                    }
+
+                    uploadForm.reset();
+                    fileNameDisplay.textContent = 'No file chosen';
+
+                    if (response.imported_count > 0 || response.updated_count > 0) {
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
+                    }
+                } else {
+                    showStatus(response.error || response.message || 'An error occurred during upload.', 'danger');
+                }
+            } catch (e) {
+                if (xhr.responseText && xhr.responseText.trim().startsWith('<')) {
+                    showStatus('Server returned an error page. Check the console for details.', 'danger');
+                    console.error('Server error response:', xhr.responseText);
+                } else {
+                    showStatus('Invalid server response: ' + e.message, 'danger');
+                }
+            }
+
+            resetUI();
+        });
+
+        xhr.addEventListener('error', function() {
+            showStatus('Upload failed. Please check your connection.', 'danger');
+            resetUI();
+        });
+
+        cancelButton.addEventListener('click', function() {
+            if (xhr && xhr.readyState !== 4) {
+                xhr.abort();
+                showStatus('Upload cancelled.', 'warning');
+                resetUI();
+            }
+        });
+
+        xhr.open('POST', uploadForm.action, true);
+        xhr.setRequestHeader('X-CSRFToken', getCSRFToken());
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.withCredentials = true;  // ✅ THIS IS THE KEY FIX
+        xhr.send(formData);
+
+        function showStatus(message, type) {
+            const alertClass = type === 'danger' ? 'alert-danger' :
+                              type === 'warning' ? 'alert-warning' : 'alert-success';
+            statusMessage.innerHTML = `
+                <div class="alert ${alertClass}">
+                    <i class="fas fa-${type === 'danger' ? 'exclamation-circle' :
+                                         type === 'warning' ? 'exclamation-triangle' : 'check-circle'} me-2"></i>
+                    ${message}
+                </div>
+            `;
+        }
+
+        function resetUI() {
+            progressContainer.style.display = 'none';
+            uploadButton.disabled = false;
+            xhr = null;
+        }
+
+        function renderPreview(headers, rows) {
+            const headersRow = document.getElementById('previewHeaders');
+            const bodyRow = document.getElementById('previewBody');
+
+            headersRow.innerHTML = headers.map(header =>
+                `<th style="position: sticky; top: 0; background-color: rgba(0,0,0,0.5);">${header}</th>`
+            ).join('');
+
+            bodyRow.innerHTML = rows.map(row =>
+                `<tr>${row.map(cell => `<td>${cell || '&nbsp;'}</td>`).join('')}</tr>`
+            ).join('');
+        }
+    });
 });
 </script>
 {% endblock %}

@@ -1,10 +1,31 @@
 # artist_logs/models.py
+from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.utils import timezone
 import re
 import datetime
-import re
+from django.db.models import Sum, Q, Count  
+from django.contrib.postgres.fields import ArrayField 
+from django.db.models import JSONField  # ✅ Correct import for Django 3.1+
+from .fields import ListField  # ✅ Import the custom ListField
+from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db.models import Sum, F, FloatField, ExpressionWrapper
+from django.db import migrations, models
+from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import InMemoryUploadedFile
+import hashlib
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.db import transaction
+import csv
+from io import TextIOWrapper, StringIO
+from django.db import models
+from django.db.models import Sum, Q, F, DecimalField, Min, Max
+from decimal import Decimal
+import time
+
 
 # =============================================
 # Base Models (No Dependencies)
@@ -81,8 +102,6 @@ class IncomeType(models.Model):
 # =============================================
 # Composer Model (Core Model)
 # =============================================
-
-
 
 class Composer(models.Model):
     """
@@ -205,92 +224,84 @@ class Composer(models.Model):
     def __str__(self):
         return self.full_name
 
-    # --- Save Method: Auto-generate composer_id and populate first_name/last_name ---
+    # --- Save Method ---
     def save(self, *args, **kwargs):
-        """
-        Auto-generate composer_id and populate first_name/last_name from full_name.
-        """
-        # Auto-generate composer_id if not provided
-        if not self.composer_id:
-            name_parts = self.full_name.upper().split()
-            if len(name_parts) >= 2:
-                # Convert hash to string and take first 3 characters
-                hash_str = str(abs(hash(self.full_name)))[:3]
-                self.composer_id = f"{name_parts[-1]}-{name_parts[0]}-{hash_str}"
-            else:
-                hash_str = str(abs(hash(self.full_name)))[:3]
-                self.composer_id = f"{name_parts[0]}-{hash_str}"
+        if not self.full_name:
+            name_parts = []
+            if self.first_name:
+                name_parts.append(self.first_name)
+            if self.last_name:
+                name_parts.append(self.last_name)
+            if name_parts:
+                self.full_name = ' '.join(name_parts)
 
-        # Auto-populate first_name and last_name from full_name
-        if self.full_name and not (self.first_name and self.last_name):
-            name_parts = self.full_name.split()
-            if len(name_parts) > 1:
-                self.last_name = name_parts[-1]
-                self.first_name = ' '.join(name_parts[:-1])
+        if not self.composer_id:
+            name_parts = []
+            if self.first_name:
+                name_parts.append(self.first_name)
+            if self.last_name:
+                name_parts.append(self.last_name)
+            if name_parts:
+                hash_str = hashlib.md5(self.full_name.encode()).hexdigest()[:8]
+                self.composer_id = f"{name_parts[0]}-{hash_str}"
             else:
-                self.first_name = self.full_name
+                self.composer_id = f"unknown-{hashlib.md5(str(time.time()).encode()).hexdigest()[:8]}"
 
         super().save(*args, **kwargs)
 
-    # --- Class Method: Find or Create by Name ---
+    # --- Class Method ---
     @classmethod
     def find_or_create_by_name(cls, name):
-        """
-        Find a composer by name or create a new one.
-        Handles name variations (e.g., "Thomas/Trueman" → "Thomas Trueman").
-        """
         if not name or not name.strip():
             return None
 
-        # Normalize the name: remove special chars, extra spaces, and standardize case
-        normalized = re.sub(r'[^\w\s-]', ' ', name).strip()  # Remove /, ;, etc.
-        normalized = re.sub(r'\s+', ' ', normalized).title()  # Collapse spaces and title case
+        normalized = re.sub(r'[^\w\s-]', ' ', name).strip()
+        normalized = re.sub(r'\s+', ' ', normalized).title()
 
-        # Handle "Last, First" format (e.g., "Trueman, Thomas")
         if ',' in normalized:
             parts = [p.strip() for p in normalized.split(',')]
             if len(parts) == 2:
                 normalized = f"{parts[1]} {parts[0]}"
 
-        # Try to find an existing composer (case-insensitive)
         composer = cls.objects.filter(full_name__iexact=normalized).first()
-
         if not composer:
             composer = cls.objects.create(full_name=normalized)
-
         return composer
-
-from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Song(models.Model):
     """
     Model representing a song with a unique code.
     Each song can have multiple composers with royalty splits.
     """
+    # --- Basic Information ---
     code = models.CharField(
         max_length=20,
         unique=True,
         blank=True,
         null=True,
+        db_index=True,
         help_text="Unique code for the song (e.g., '6087301')"
     )
     title = models.CharField(
         max_length=255,
-        help_text="Title of the song (e.g., 'Dank')"
+        db_index=True,
+        help_text="Title of the song"
     )
     catalogue_number = models.CharField(
         max_length=50,
         blank=True,
         null=True,
+        db_index=True,
         help_text="Catalogue number of the song"
     )
     isrc = models.CharField(
-        max_length=12,
+        max_length=50,
         blank=True,
         null=True,
         help_text="International Standard Recording Code"
     )
+
+    # --- Production Information ---
     album_or_production = models.CharField(
         max_length=255,
         blank=True,
@@ -310,7 +321,7 @@ class Song(models.Model):
         help_text="License number for the song"
     )
 
-    # Legacy composer field (kept for backward compatibility)
+    # --- Composer Relationship ---
     composer = models.ForeignKey(
         'Composer',
         on_delete=models.SET_NULL,
@@ -320,8 +331,10 @@ class Song(models.Model):
         help_text="Legacy: The primary composer of this song (for backward compatibility)"
     )
 
+    # --- Metadata ---
     created_at = models.DateTimeField(
         auto_now_add=True,
+        db_index=True,
         help_text="When this song was created"
     )
     updated_at = models.DateTimeField(
@@ -329,6 +342,7 @@ class Song(models.Model):
         help_text="When this song was last updated"
     )
 
+    # --- Model Metadata ---
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -336,15 +350,23 @@ class Song(models.Model):
                 name='unique_song_code',
                 condition=models.Q(code__isnull=False)
             )
-            # Removed the unique_song_title_per_composer constraint as it's no longer needed
         ]
         verbose_name = "Song"
         verbose_name_plural = "Songs"
         ordering = ['title']
+        indexes = [
+            models.Index(fields=['title'], name='song_title_idx'),
+            models.Index(fields=['code'], name='song_code_idx'),
+            models.Index(fields=['catalogue_number'], name='song_catalogue_idx'),
+            models.Index(fields=['isrc'], name='song_isrc_idx'),
+            models.Index(fields=['created_at'], name='song_created_idx'),
+        ]
 
+    # --- String Representation ---
     def __str__(self):
         return f"{self.title} ({self.code})" if self.code else self.title
 
+    # --- Save Method ---
     def save(self, *args, **kwargs):
         """
         Custom save method.
@@ -362,118 +384,169 @@ class Song(models.Model):
         else:
             super().save(*args, **kwargs)
 
+    # --- Earnings Methods ---
     def total_earnings(self):
-        """
-        Calculate the total earnings for this song from its PRS data.
-        Uses royalty_payable as the earnings amount.
-        """
-        return sum(prs.royalty_payable for prs in self.prs_records.all())
+        return self.prs_records.aggregate(  # ✅ Use prs_records
+            total=models.Sum('royalty_payable')
+        )['total'] or Decimal('0.00')
 
-    # ====================
-    # Composer Relationships
-    # ====================
+    def paid_earnings(self):
+        return self.prs_records.filter(is_paid=True).aggregate(
+            total=Sum('royalty_payable')
+        )['total'] or 0
 
+    def unpaid_earnings(self):
+        return self.total_earnings() - self.paid_earnings()
+
+    def earnings_by_source(self):
+        return list(
+            self.prs_records.values('source__name')
+            .annotate(total=Sum('royalty_payable'))
+            .order_by('-total')
+        )
+
+    def earnings_by_income_type(self):
+        return list(
+            self.prs_records.values('income_type__name')
+            .annotate(total=Sum('royalty_payable'))
+            .order_by('-total')
+        )
+
+    def earnings_by_period(self):
+        return list(
+            self.prs_records.values('income_period')
+            .annotate(total=Sum('royalty_payable'))
+            .order_by('income_period')
+        )
+
+    # --- Composer Relationship Methods ---
     @property
     def composers(self):
-        """
-        Returns all composers for this song via the SongComposer relationship.
-        """
-        return [sc.composer for sc in self.song_composers.all()]
+        return [sc.composer for sc in self.song_composers.all().select_related('composer')]
 
     @property
     def composer_names(self):
-        """
-        Returns a string of all composer names for this song.
-        """
         return ", ".join([c.full_name for c in self.composers])
 
     @property
     def has_multiple_composers(self):
-        """
-        Returns True if this song has more than one composer.
-        """
         return self.song_composers.count() > 1
 
     @property
     def total_split_percentage(self):
-        """
-        Returns the total split percentage for this song.
-        """
         return self.song_composers.aggregate(
-            total=models.Sum('split_percentage')
+            total=Sum('split_percentage')
         )['total'] or 0
 
-    def get_composer_splits(self):
-        """
-        Returns a list of tuples: (composer, split_percentage)
-        """
-        return [(sc.composer, sc.split_percentage) for sc in self.song_composers.all()]
-
     def add_composer(self, composer, split_percentage=100.0, notes=""):
-        """
-        Add a composer to this song with a split percentage.
-        If this is the first composer, also set as the legacy composer.
-        """
-        from .models import SongComposer
+        if not (0 <= split_percentage <= 100):
+            raise ValueError("Split percentage must be between 0 and 100")
 
-        # Create the SongComposer relationship
-        song_composer = SongComposer.objects.create(
+        current_total = self.total_split_percentage
+        if current_total + split_percentage > 100:
+            raise ValueError(
+                f"Total split percentage would exceed 100% "
+                f"(current: {current_total}%, adding: {split_percentage}%)"
+            )
+
+        SongComposer = self.song_composers.model
+        SongComposer.objects.create(
             song=self,
             composer=composer,
             split_percentage=split_percentage,
             notes=notes
         )
 
-        # If this is the first composer, set as legacy composer
-        if not self.composer:
+        if self.song_composers.count() == 1:
             self.composer = composer
             self.save(update_fields=['composer'])
 
-        return song_composer
-
     def set_composers(self, composer_splits):
-        """
-        Set all composers for this song with their split percentages.
-        composer_splits: List of tuples (composer, split_percentage)
+        total_percentage = sum(percentage for _, percentage in composer_splits)
+        if total_percentage != 100:
+            raise ValueError(
+                f"Total split percentage must equal 100% (got {total_percentage}%)"
+            )
 
-        Example:
-        song.set_composers([
-            (composer1, 60.0),
-            (composer2, 40.0)
-        ])
-        """
-        from .models import SongComposer
-
-        # Clear existing composers
         self.song_composers.all().delete()
 
-        # Add new composers
+        SongComposer = self.song_composers.model
         for composer, percentage in composer_splits:
-            self.add_composer(composer, percentage)
+            SongComposer.objects.create(
+                song=self,
+                composer=composer,
+                split_percentage=percentage
+            )
 
-        # Set the first composer as the legacy composer
-        if self.song_composers.exists():
-            self.composer = self.song_composers.first().composer
+        if composer_splits:
+            first_composer, _ = composer_splits[0]
+            self.composer = first_composer
             self.save(update_fields=['composer'])
 
-    def distribute_royalties(self, amount):
-        """
-        Distribute an amount among the song's composers based on their split percentages.
-        Returns a list of tuples: (composer, amount)
-        """
-        if not self.song_composers.exists():
-            return []
+    def get_composer_splits(self):
+        return [{
+            'composer_id': sc.composer.id,
+            'composer_name': sc.composer.full_name,
+            'split_percentage': sc.split_percentage,
+            'notes': sc.notes
+        } for sc in self.song_composers.all()]
 
-        total_percentage = self.total_split_percentage
-        if total_percentage == 0:
-            return []
+    def get_composer_earnings(self):
+        # Implement based on your PRS data structure
+        return []
 
-        distributions = []
-        for sc in self.song_composers.all():
-            composer_amount = (amount * sc.split_percentage) / 100
-            distributions.append((sc.composer, composer_amount))
+    def get_prs_summary(self):
+        return {
+            'total_records': self.prs_records.count(),
+            'total_earnings': self.total_earnings(),
+            'paid_earnings': self.paid_earnings(),
+            'unpaid_earnings': self.unpaid_earnings(),
+            'sources': self.earnings_by_source(),
+            'income_types': self.earnings_by_income_type(),
+            'periods': self.earnings_by_period(),
+        }
 
-        return distributions
+    def get_composer_summary(self):
+        return {
+            'composers': self.composers,
+            'composer_names': self.composer_names,
+            'has_multiple_composers': self.has_multiple_composers,
+            'total_split_percentage': self.total_split_percentage,
+            'is_fully_split': self.total_split_percentage == 100,
+            'composer_splits': self.get_composer_splits(),
+            'composer_earnings': self.get_composer_earnings(),
+        }
+
+    def get_full_summary(self):
+        return {
+            **self.get_prs_summary(),
+            **self.get_composer_summary(),
+            'id': self.id,
+            'title': self.title,
+            'code': self.code,
+            'catalogue_number': self.catalogue_number,
+            'isrc': self.isrc,
+            'album_or_production': self.album_or_production,
+            'episode': self.episode,
+            'license_number': self.license_number,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at,
+        }
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'code': self.code,
+            'catalogue_number': self.catalogue_number,
+            'isrc': self.isrc,
+            'album_or_production': self.album_or_production,
+            'episode': self.episode,
+            'license_number': self.license_number,
+            'composer': self.composer.full_name if self.composer else None,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at,
+        }
     
 class SongComposer(models.Model):
     """
@@ -490,9 +563,7 @@ class SongComposer(models.Model):
         on_delete=models.CASCADE,
         related_name='song_composers'
     )
-    split_percentage = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
+    split_percentage = models.FloatField(
         validators=[MinValueValidator(0), MaxValueValidator(100)],
         help_text="Percentage of royalties for this composer (0-100)"
     )
@@ -567,19 +638,21 @@ class PaymentStatement(models.Model):
 # unique_together defines the allowance of duplicates in the prs data
 # =============================================
 
+
 class Prs_data(models.Model):
     """
     Model to store PRS data records.
     Each record links to a Song, which links to a Composer.
+    Optimized for PostgreSQL with additional helper methods.
     """
     # Basic identifiers
+class Prs_data(models.Model):
     song = models.ForeignKey(
         Song,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='prs_records',
-        help_text="The song this PRS record relates to"
+        related_name='prs_records'  # ✅ Revert to original name
     )
     song_title = models.CharField(
         max_length=255,
@@ -596,16 +669,18 @@ class Prs_data(models.Model):
 
     # Source information
     source = models.ForeignKey(
-        Source,
+        'Source',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text="The source of the royalty income"
+        help_text="The source of the royalty income",
+        db_index=True
     )
     source_code = models.CharField(
         max_length=20,
         blank=True,
         null=True,
+        db_index=True,
         help_text="Code of the source (denormalized from Source)"
     )
     source_name = models.CharField(
@@ -619,6 +694,7 @@ class Prs_data(models.Model):
         choices=[('D', 'Domestic'), ('F', 'Foreign')],
         blank=True,
         null=True,
+        db_index=True,
         help_text="Whether the source is domestic or foreign"
     )
     foreign_source = models.CharField(
@@ -628,9 +704,10 @@ class Prs_data(models.Model):
         help_text="Name of the foreign source if applicable"
     )
     royalty_country_code = models.CharField(
-        max_length=3,
+        max_length=4,
         blank=True,
         null=True,
+        db_index=True,
         help_text="Country code for the royalty source"
     )
     royalty_country_description = models.CharField(
@@ -642,16 +719,18 @@ class Prs_data(models.Model):
 
     # Income information
     income_type = models.ForeignKey(
-        IncomeType,
+        'IncomeType',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text="The type of income"
+        help_text="The type of income",
+        db_index=True
     )
     income_type_code = models.CharField(
         max_length=20,
         blank=True,
         null=True,
+        db_index=True,
         help_text="Code of the income type (denormalized from IncomeType)"
     )
     income_type_name = models.CharField(
@@ -695,6 +774,7 @@ class Prs_data(models.Model):
         max_digits=12,
         decimal_places=2,
         default=0.00,
+        db_index=True,
         help_text="Amount payable to the composer"
     )
 
@@ -703,6 +783,7 @@ class Prs_data(models.Model):
         max_length=10,
         blank=True,
         null=True,
+        db_index=True,
         help_text="Year part of the statement ID"
     )
     statement_id_number = models.CharField(
@@ -753,6 +834,7 @@ class Prs_data(models.Model):
         max_length=12,
         blank=True,
         null=True,
+        db_index=True,
         help_text="International Standard Recording Code"
     )
     album_or_production = models.CharField(
@@ -777,11 +859,13 @@ class Prs_data(models.Model):
     # Payment tracking fields
     is_paid = models.BooleanField(
         default=False,
+        db_index=True,
         help_text="Whether this record has been paid"
     )
     payment_date = models.DateField(
         blank=True,
         null=True,
+        db_index=True,
         help_text="Date when the payment was made"
     )
     payment_amount = models.DecimalField(
@@ -792,12 +876,13 @@ class Prs_data(models.Model):
         help_text="Amount paid for this record"
     )
     payment_statement = models.ForeignKey(
-        PaymentStatement,
+        'PaymentStatement',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='prs_records',
-        help_text="The payment statement this record is associated with"
+        help_text="The payment statement this record is associated with",
+        db_index=True
     )
     payment_notes = models.TextField(
         blank=True,
@@ -805,9 +890,30 @@ class Prs_data(models.Model):
         help_text="Notes about the payment"
     )
 
+    # PostgreSQL-specific fields - CORRECTED
+    metadata = JSONField(  # ✅ Using Django's built-in JSONField
+        blank=True,
+        null=True,
+        help_text="Additional metadata for this PRS record"
+    )
+
+    tags = ArrayField(  # ✅ Using PostgreSQL's ArrayField
+        models.CharField(max_length=50),
+        blank=True,
+        null=True,
+        help_text="Tags for categorizing this PRS record"
+    )
+    
+    tags = ListField(  # ✅ Now using the custom ListField
+        blank=True,
+        null=True,
+        help_text="Tags for categorizing this PRS record"
+    )
+
     # Metadata
     created_at = models.DateTimeField(
         auto_now_add=True,
+        db_index=True,
         help_text="When this record was created"
     )
     updated_at = models.DateTimeField(
@@ -819,13 +925,10 @@ class Prs_data(models.Model):
         verbose_name = "PRS Data Record"
         verbose_name_plural = "PRS Data Records"
         ordering = ['-income_period', 'song_title']
-        #Option to prevent duplicate uploads.
-        #unique_together = [['song_code', 'income_period', 'source_code', 'income_type_code']]
         indexes = [
             models.Index(fields=['song_title']),
             models.Index(fields=['income_period']),
-            models.Index(fields=['is_paid']),
-            models.Index(fields=['payment_statement']),
+            # ... other indexes ...
         ]
 
     def __str__(self):
@@ -849,7 +952,17 @@ class Prs_data(models.Model):
                 self.income_type_code = self.income_type.code
             if not self.income_type_name:
                 self.income_type_name = self.income_type.name
+
+        # Update legacy composer field
+        if self.song:
+            self.composers = self.song.composer_names
+            self.artist = self.song.composer_names if self.song.composer else None
+
         super().save(*args, **kwargs)
+
+    # ====================
+    # Property Methods
+    # ====================
 
     @property
     def composer(self):
@@ -864,6 +977,40 @@ class Prs_data(models.Model):
         Returns the composer names from the song.
         """
         return self.song.composer_names if self.song else "Unknown"
+
+    @property
+    def composer_list(self):
+        """
+        Returns a list of composer objects from the song.
+        """
+        return self.song.composers if self.song else []
+
+    @property
+    def is_domestic(self):
+        """
+        Returns True if this record is from a domestic source.
+        """
+        return self.domestic_or_foreign == 'D'
+
+    @property
+    def is_foreign(self):
+        """
+        Returns True if this record is from a foreign source.
+        """
+        return self.domestic_or_foreign == 'F'
+
+    @property
+    def full_statement_id(self):
+        """
+        Returns the full statement ID as a string.
+        """
+        if self.statement_id_year and self.statement_id_number:
+            return f"{self.statement_id_year}-{self.statement_id_number}"
+        return None
+
+    # ====================
+    # Payment Methods
+    # ====================
 
     def mark_as_paid(self, payment_statement=None, payment_date=None, payment_amount=None, notes=None):
         """
@@ -898,6 +1045,312 @@ class Prs_data(models.Model):
         self.payment_notes = None
         self.save()
 
+    def toggle_paid_status(self):
+        """
+        Toggle the paid status of this record.
+        """
+        if self.is_paid:
+            self.mark_as_unpaid()
+        else:
+            self.mark_as_paid()
+
+    # ====================
+    # Calculation Methods
+    # ====================
+
+    def calculate_composer_shares(self):
+        """
+        Calculate how the royalty_payable would be split among the song's composers.
+        Returns a list of tuples: (composer, amount)
+        """
+        if not self.song:
+            return []
+
+        return self.song.distribute_royalties(self.royalty_payable)
+
+    def get_composer_earnings(self):
+        """
+        Get the earnings for each composer based on their split percentage.
+        Returns a list of tuples: (composer, amount)
+        """
+        return self.calculate_composer_shares()
+
+    # ====================
+    # Query Methods
+    # ====================
+
+    @classmethod
+    def get_paid_records(cls):
+        """
+        Returns a queryset of all paid PRS records.
+        """
+        return cls.objects.filter(is_paid=True)
+
+    @classmethod
+    def get_unpaid_records(cls):
+        """
+        Returns a queryset of all unpaid PRS records.
+        """
+        return cls.objects.filter(is_paid=False)
+
+    @classmethod
+    def get_by_period(cls, period):
+        """
+        Returns a queryset of PRS records for a specific income period.
+        """
+        return cls.objects.filter(income_period=period)
+
+    @classmethod
+    def get_by_source(cls, source):
+        """
+        Returns a queryset of PRS records for a specific source.
+        """
+        return cls.objects.filter(source=source)
+
+    @classmethod
+    def get_by_income_type(cls, income_type):
+        """
+        Returns a queryset of PRS records for a specific income type.
+        """
+        return cls.objects.filter(income_type=income_type)
+
+    @classmethod
+    def get_by_song(cls, song):
+        """
+        Returns a queryset of PRS records for a specific song.
+        """
+        return cls.objects.filter(song=song)
+
+    @classmethod
+    def get_total_earnings(cls):
+        """
+        Returns the total earnings across all PRS records.
+        """
+        return cls.objects.aggregate(
+            total=Sum('royalty_payable')
+        )['total'] or 0
+
+    @classmethod
+    def get_paid_earnings(cls):
+        """
+        Returns the total paid earnings across all PRS records.
+        """
+        return cls.objects.filter(is_paid=True).aggregate(
+            total=Sum('royalty_payable')
+        )['total'] or 0
+
+    @classmethod
+    def get_unpaid_earnings(cls):
+        """
+        Returns the total unpaid earnings across all PRS records.
+        """
+        return cls.get_total_earnings() - cls.get_paid_earnings()
+
+    @classmethod
+    def get_earnings_by_period(cls):
+        """
+        Returns earnings grouped by income period.
+        Returns a list of dictionaries: [{'period': str, 'total': float}]
+        """
+        return list(
+            cls.objects.values('income_period')
+            .annotate(total=Sum('royalty_payable'))
+            .order_by('income_period')
+        )
+
+    @classmethod
+    def get_earnings_by_source(cls):
+        """
+        Returns earnings grouped by source.
+        Returns a list of dictionaries: [{'source': str, 'total': float}]
+        """
+        return list(
+            cls.objects.values('source__name')
+            .annotate(total=Sum('royalty_payable'))
+            .order_by('-total')
+        )
+
+    @classmethod
+    def get_earnings_by_income_type(cls):
+        """
+        Returns earnings grouped by income type.
+        Returns a list of dictionaries: [{'income_type': str, 'total': float}]
+        """
+        return list(
+            cls.objects.values('income_type__name')
+            .annotate(total=Sum('royalty_payable'))
+            .order_by('-total')
+        )
+
+    @classmethod
+    def get_earnings_by_song(cls):
+        """
+        Returns earnings grouped by song.
+        Returns a list of dictionaries: [{'song': str, 'total': float}]
+        """
+        return list(
+            cls.objects.values('song__title', 'song__code')
+            .annotate(total=Sum('royalty_payable'))
+            .order_by('-total')
+        )
+
+    @classmethod
+    def get_earnings_by_composer(cls):
+        """
+        Returns earnings grouped by composer.
+        Returns a list of dictionaries: [{'composer': str, 'total': float}]
+        """
+        return list(
+            cls.objects.values('song__composer__full_name')
+            .annotate(total=Sum('royalty_payable'))
+            .order_by('-total')
+        )
+
+    @classmethod
+    def get_records_by_date_range(cls, start_date=None, end_date=None):
+        """
+        Returns PRS records within a specific date range.
+        """
+        qs = cls.objects.all()
+        if start_date:
+            qs = qs.filter(created_at__gte=start_date)
+        if end_date:
+            qs = qs.filter(created_at__lte=end_date)
+        return qs
+
+    @classmethod
+    def get_summary_statistics(cls):
+        """
+        Returns summary statistics for all PRS records.
+        """
+        return {
+            'total_records': cls.objects.count(),
+            'total_earnings': cls.get_total_earnings(),
+            'paid_earnings': cls.get_paid_earnings(),
+            'unpaid_earnings': cls.get_unpaid_earnings(),
+            'paid_records': cls.get_paid_records().count(),
+            'unpaid_records': cls.get_unpaid_records().count(),
+            'earnings_by_period': cls.get_earnings_by_period(),
+            'earnings_by_source': cls.get_earnings_by_source(),
+            'earnings_by_income_type': cls.get_earnings_by_income_type(),
+            'earnings_by_song': cls.get_earnings_by_song(),
+            'earnings_by_composer': cls.get_earnings_by_composer(),
+        }
+
+    # ====================
+    # Bulk Operations
+    # ====================
+
+    @classmethod
+    def bulk_mark_as_paid(cls, record_ids, payment_statement=None, payment_date=None, notes=None):
+        """
+        Mark multiple PRS records as paid in a single query.
+        """
+        records = cls.objects.filter(id__in=record_ids)
+        records.update(
+            is_paid=True,
+            payment_statement=payment_statement,
+            payment_date=payment_date,
+            updated_at=timezone.now()
+        )
+
+        if notes:
+            for record in records:
+                if record.payment_notes:
+                    record.payment_notes += f"\n{notes}"
+                else:
+                    record.payment_notes = notes
+                record.save(update_fields=['payment_notes'])
+
+    @classmethod
+    def bulk_mark_as_unpaid(cls, record_ids):
+        """
+        Mark multiple PRS records as unpaid in a single query.
+        """
+        cls.objects.filter(id__in=record_ids).update(
+            is_paid=False,
+            payment_date=None,
+            payment_amount=None,
+            payment_statement=None,
+            payment_notes=None,
+            updated_at=timezone.now()
+        )
+
+    # ====================
+    # Utility Methods
+    # ====================
+
+    def to_dict(self):
+        """
+        Returns the PRS record as a dictionary.
+        """
+        return {
+            'id': self.id,
+            'song': self.song.to_dict() if self.song else None,
+            'song_title': self.song_title,
+            'song_code': self.song_code,
+            'source': self.source.name if self.source else None,
+            'source_code': self.source_code,
+            'source_name': self.source_name,
+            'domestic_or_foreign': self.domestic_or_foreign,
+            'foreign_source': self.foreign_source,
+            'royalty_country_code': self.royalty_country_code,
+            'royalty_country_description': self.royalty_country_description,
+            'income_type': self.income_type.name if self.income_type else None,
+            'income_type_code': self.income_type_code,
+            'income_type_name': self.income_type_name,
+            'main_income_type_name': self.main_income_type_name,
+            'units': self.units,
+            'percentage_collected': float(self.percentage_collected),
+            'amount_collected': float(self.amount_collected),
+            'royalty_payout_percentage': float(self.royalty_payout_percentage),
+            'royalty_payable': float(self.royalty_payable),
+            'statement_id_year': self.statement_id_year,
+            'statement_id_number': self.statement_id_number,
+            'full_statement_id': self.full_statement_id,
+            'income_period': self.income_period,
+            'catalogue_no': self.catalogue_no,
+            'composers': self.composer_name,
+            'original_source_as_received': self.original_source_as_received,
+            'original_source': self.original_source,
+            'artist': self.artist,
+            'isrc': self.isrc,
+            'album_or_production': self.album_or_production,
+            'episode': self.episode,
+            'license_number': self.license_number,
+            'is_paid': self.is_paid,
+            'payment_date': self.payment_date,
+            'payment_amount': float(self.payment_amount) if self.payment_amount else None,
+            'payment_statement': self.payment_statement.statement_number if self.payment_statement else None,
+            'payment_notes': self.payment_notes,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at,
+            'composer_shares': self.calculate_composer_shares(),
+        }
+
+    @classmethod
+    def get_duplicate_records(cls, song_code=None, income_period=None, source_code=None, income_type_code=None):
+        """
+        Find potential duplicate PRS records based on various criteria.
+        """
+        qs = cls.objects.all()
+
+        if song_code:
+            qs = qs.filter(song_code=song_code)
+        if income_period:
+            qs = qs.filter(income_period=income_period)
+        if source_code:
+            qs = qs.filter(source_code=source_code)
+        if income_type_code:
+            qs = qs.filter(income_type_code=income_type_code)
+
+        # Group by key fields and count
+        return list(
+            qs.values('song_code', 'income_period', 'source_code', 'income_type_code')
+            .annotate(count=Count('id'))
+            .filter(count__gt=1)
+            .order_by('-count')
+        )
 # =============================================
 # Payment Plan Model (Depends on Composer, PaymentStatement)
 # =============================================
@@ -1025,62 +1478,27 @@ class PaymentPlan(models.Model):
 # Upload History Model
 # =============================================
 
-# artist_logs/models.py
-from django.db import models
-from django.core.files.storage import default_storage
-from django.core.files.uploadedfile import InMemoryUploadedFile
-import hashlib
 
 class UploadHistory(models.Model):
-    """
-    Model to track CSV file uploads and prevent duplicates.
-    Stores metadata about each uploaded file including its hash for duplicate detection.
-    """
-    file_name = models.CharField(
-        max_length=255,
-        help_text="Original name of the uploaded file"
-    )
-    file_hash = models.CharField(
-        max_length=64,
-        unique=True,
-        help_text="MD5 hash of the file content for duplicate detection"
-    )
-    file_path = models.CharField(
-        max_length=512,  # Increased length for file paths
-        blank=True,
-        null=True,
-        help_text="Path to temporary file for AJAX uploads"
-    )
-    uploaded_at = models.DateTimeField(
-        auto_now_add=True,
-        help_text="When the file was uploaded"
-    )
-    processed_at = models.DateTimeField(
-        blank=True,
-        null=True,
-        help_text="When the file was processed"
-    )
-    records_imported = models.IntegerField(
-        default=0,
-        help_text="Number of records successfully imported from this file"
-    )
-    status = models.CharField(
-        max_length=50,
-        default="Pending",  # Changed default to support AJAX workflow
-        choices=[
-            ('Pending', 'Pending'),
-            ('Processing', 'Processing'),
-            ('Success', 'Success'),
-            ('Failed', 'Failed'),
-            ('Partial', 'Partial'),
-        ],
-        help_text="Status of the upload (Pending/Processing/Success/Failed/Partial)"
-    )
-    error_message = models.TextField(
-        blank=True,
-        null=True,
-        help_text="Error message if the upload failed"
-    )
+    file_name = models.CharField(max_length=255)
+    file_hash = models.CharField(max_length=32)
+    records_imported = models.IntegerField(default=0)
+    records_updated = models.IntegerField(default=0)  # ✅ Add this
+    status = models.CharField(max_length=20, choices=[
+        ('Success', 'Success'),
+        ('Partial', 'Partial'),
+        ('Failed', 'Failed'),
+    ])
+    error_message = models.TextField(blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(auto_now=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)  # ✅ Add this
+
+    class Meta:
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"{self.file_name} ({self.status}) - {self.uploaded_at}"
 
     class Meta:
         ordering = ['-uploaded_at']
@@ -1156,63 +1574,4 @@ class UploadHistory(models.Model):
         """
         return dict(self._meta.get_field('status').choices).get(self.status, self.status)
 
-from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
 
-class SongComposer(models.Model):
-    """
-    Intermediate model to handle multiple composers per song with royalty splits.
-    """
-    song = models.ForeignKey(
-        'Song',
-        on_delete=models.CASCADE,
-        related_name='song_composers'
-    )
-    composer = models.ForeignKey(
-        'Composer',
-        on_delete=models.CASCADE,
-        related_name='song_composers'
-    )
-    split_percentage = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text="Percentage of royalties for this composer (0-100)"
-    )
-    notes = models.TextField(
-        blank=True,
-        null=True,
-        help_text="Additional notes about this composer's contribution"
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = [['song', 'composer']]
-        verbose_name = "Song Composer Split"
-        verbose_name_plural = "Song Composer Splits"
-        ordering = ['song', 'composer']
-
-    def __str__(self):
-        return f"{self.song.title} - {self.composer.full_name} ({self.split_percentage}%)"
-
-    def save(self, *args, **kwargs):
-        """
-        Ensure the total split percentage for a song doesn't exceed 100%.
-        """
-        # Calculate total percentage for this song
-        total = SongComposer.objects.filter(song=self.song).aggregate(
-            total=models.Sum('split_percentage')
-        )['total'] or 0
-
-        # Add the current instance's percentage (if it's an update, exclude the old value)
-        if self.pk:
-            old_instance = SongComposer.objects.get(pk=self.pk)
-            total = total - old_instance.split_percentage + self.split_percentage
-        else:
-            total += self.split_percentage
-
-        if total > 100:
-            raise ValueError(f"Total split percentage for song '{self.song.title}' would exceed 100% (current total: {total}%)")
-
-        super().save(*args, **kwargs)

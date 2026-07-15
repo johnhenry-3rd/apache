@@ -1,0 +1,46 @@
+# apache_db/settings.py
+INSTALLED_APPS = [
+    'django.contrib.postgres',
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'artist_logs',
+    'debug_toolbar',
+]
+
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'apache_db',
+        'USER': 'admin',
+        'PASSWORD': 'admin',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
+
+# Add this to improve performance
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+BACKUP_DIR = os.path.join(BASE_DIR, 'backups')
+
+
+MIDDLEWARE = [
+    # ...
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+
+# For the static files warning, either:
+# 1. Create the directory:
+#    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+#
+# 2. Or remove the setting if not needed
+#    (Django will use the default static files behavior)
