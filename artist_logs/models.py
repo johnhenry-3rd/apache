@@ -638,8 +638,6 @@ class PaymentStatement(models.Model):
 # unique_together defines the allowance of duplicates in the prs data
 # =============================================
 
-
-class Prs_data(models.Model):
     """
     Model to store PRS data records.
     Each record links to a Song, which links to a Composer.

@@ -1,5 +1,6 @@
 from django.urls import path
 from artist_logs import views
+from .progress_tracker import sse_upload_progress 
 
 app_name = 'artist_logs'
 
@@ -72,10 +73,13 @@ urlpatterns = [
     path('upload-prs-csv/', views.upload_prs_csv, name='upload_prs_csv'),
     path('prs-admin/', views.prs_admin, name='prs_admin'),
     path('test-backups/', views.test_backup_list, name='test_backup_list'),
+    path('sse-upload-progress/', views.sse_upload_progress, name='sse_upload_progress'),
 
 
     # ======================
     # QUICK ACTIONS
     # ======================
     path('quick-add-composer/', views.quick_add_composer, name='quick_add_composer'),
-]
+    path('sse-upload-progress/', sse_upload_progress, name='sse_upload_progress'),
+    #path('__debug__/', include('debug_toolbar.urls')),
+    ]
