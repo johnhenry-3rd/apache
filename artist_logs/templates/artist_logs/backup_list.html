@@ -1,11 +1,11 @@
 {% extends 'artist_logs/base.html' %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="prs-admin-container">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Database Backups</h2>
-        <div>
+        <h1 class="prs-admin-title">Database Backups</h1>
+        <div class="d-flex gap-2">
             <form method="post" action="{% url 'artist_logs:backup_database' %}" class="d-inline">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-primary"
@@ -13,7 +13,7 @@
                     <i class="fas fa-plus me-1"></i> Create New Backup
                 </button>
             </form>
-            <a href="{% url 'artist_logs:prs_admin' %}" class="btn btn-outline-light ms-2">
+            <a href="{% url 'artist_logs:prs_admin' %}" class="btn btn-outline-light">
                 <i class="fas fa-arrow-left me-1"></i> Back to PRS Admin
             </a>
         </div>
@@ -23,7 +23,10 @@
     {% if messages %}
     <div class="messages mb-4">
         {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        <div class="alert alert-{{ message.tags }}">
+            <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'danger' %}fa-exclamation-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %} me-2"></i>
+            {{ message }}
+        </div>
         {% endfor %}
     </div>
     {% endif %}
@@ -31,41 +34,35 @@
     <!-- Stats -->
     <div class="row mb-4">
         <div class="col-md-4">
-            <div class="card bg-dark">
-                <div class="card-body">
-                    <h5 class="card-title">Total Backups</h5>
-                    <p class="card-text fs-4">{{ backup_count }}</p>
-                </div>
+            <div class="stat-card">
+                <h3>Total Backups</h3>
+                <p>{{ backup_count }}</p>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card bg-dark">
-                <div class="card-body">
-                    <h5 class="card-title">Valid Backups</h5>
-                    <p class="card-text fs-4">
-                        {% with valid_count=0 %}
-                            {% for backup in backups %}
-                                {% if not backup.has_error %}
-                                    {% with valid_count=valid_count|add:1 %}{% endwith %}
-                                {% endif %}
-                            {% endfor %}
-                            {{ valid_count }}
-                        {% endwith %}
-                    </p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card bg-dark">
-                <div class="card-body">
-                    <h5 class="card-title">Total Size</h5>
-                    <p class="card-text fs-4">
+            <div class="stat-card">
+                <h3>Valid Backups</h3>
+                <p>
+                    {% with valid_count=0 %}
                         {% for backup in backups %}
-                            {% if not forloop.first %}+ {% endif %}
-                            {{ backup.size_formatted }}
+                            {% if not backup.has_error %}
+                                {% with valid_count=valid_count|add:1 %}{% endwith %}
+                            {% endif %}
                         {% endfor %}
-                    </p>
-                </div>
+                        {{ valid_count }}
+                    {% endwith %}
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <h3>Total Size</h3>
+                <p>
+                    {% for backup in backups %}
+                        {% if not forloop.first %}+ {% endif %}
+                        {{ backup.size_formatted }}
+                    {% endfor %}
+                </p>
             </div>
         </div>
     </div>
@@ -113,28 +110,26 @@
                         {% endif %}
                     </td>
                     <td>
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 flex-wrap">
+                            <!-- Verify Button -->
                             {% if not backup.has_error %}
-                                <!-- Verify Button -->
                                 <a href="{% url 'artist_logs:verify_backup' backup.filename %}"
                                    class="btn btn-sm btn-warning"
                                    title="Verify backup contents">
                                     <i class="fas fa-search"></i> Verify
                                 </a>
-
-                                <!-- Restore Button -->
-                                <form method="post" action="{% url 'artist_logs:restore_database' %}" class="d-inline">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="backup_filename" value="{{ backup.filename }}">
-                                    <button type="submit" class="btn btn-sm btn-success"
-                                            onclick="return confirm('⚠️ WARNING: This will RESTORE your database from this backup, overwriting ALL current data. This cannot be undone! Are you sure?')"
-                                            title="Restore from this backup">
-                                        <i class="fas fa-undo"></i> Restore
-                                    </button>
-                                </form>
                             {% endif %}
 
-                            <!-- Download Button (always available) -->
+                            <!-- Restore Button (now links to confirmation page) -->
+                            {% if not backup.has_error %}
+                                <a href="{% url 'artist_logs:confirm_restore' backup.filename %}"
+                                   class="btn btn-sm btn-success"
+                                   title="Restore from this backup">
+                                    <i class="fas fa-undo"></i> Restore
+                                </a>
+                            {% endif %}
+
+                            <!-- Download Button -->
                             <a href="{% url 'artist_logs:download_backup' backup.filename %}"
                                class="btn btn-sm btn-info"
                                title="Download backup file">
@@ -177,7 +172,7 @@
     {% else %}
     <!-- Empty State -->
     <div class="text-center py-5">
-        <i class="fas fa-database fa-3x mb-3 text-muted"></i>
+        <i class="fas fa-database fa-3x mb-3" style="color: var(--apache-gold); opacity: 0.7;"></i>
         <h4 class="text-muted">No Backups Found</h4>
         <p class="text-muted mb-4">You haven't created any backups yet.</p>
         <form method="post" action="{% url 'artist_logs:backup_database' %}" class="d-inline">

@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
-from artist_logs.models import Song, Composer, Prs_data
+from artist_logs.models import Song, Composer, Prs_data, SongComposer
 
 class Command(BaseCommand):
-    help = 'Link songs to composers based on the composers field in PRS data'
+    help = 'Link songs to composers (single composer only) based on the composers field in PRS data'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -89,7 +89,13 @@ class Command(BaseCommand):
             'Newbold': 'Newbold',
             'Wade': 'Wade',
             'Luka': 'Luka',
-            'Burrow': 'Burrow'
+            'Burrow': 'Burrow',
+            'Berenyi': 'Berenyi',
+            'Kubicki': 'Kubicki',
+            'Gray': 'Gray',
+            'Hill': 'Hill',
+            'Rivers': 'Rivers',
+            'R-S': 'R-S',
         }
 
         # Get PRS records to process
@@ -109,15 +115,16 @@ class Command(BaseCommand):
         already_linked_count = 0
         skipped_count = 0
         no_composers_count = 0
+        multi_composer_count = 0
 
         for prs in prs_query:
             song = prs.song
 
-            # Skip if already linked
-            if song.composer:
+            # Skip if already linked via SongComposer
+            if song.song_composers.exists():
                 already_linked_count += 1
                 if verbose:
-                    self.stdout.write(self.style.SUCCESS(f"Already linked: '{song.title}' to {song.composer.full_name}"))
+                    self.stdout.write(self.style.SUCCESS(f"Already linked via SongComposer: '{song.title}'"))
                 continue
 
             # Get composers from the composers field
@@ -137,48 +144,69 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.WARNING(f"No valid composer names found in '{composers_text}' for song '{song.title}'"))
                 continue
 
-            # Try each last name until we find a match
-            matched = False
+            # Find matching composers
+            matched_composers = []
             for last_name in last_names:
                 if last_name in last_name_mapping:
                     composer_last_name = last_name_mapping[last_name]
-
                     try:
-                        # Find the composer with this last name
                         composer = Composer.objects.filter(last_name__iexact=composer_last_name).first()
-
-                        if composer:
-                            if not dry_run:
-                                song.composer = composer
-                                song.save()
-                            action = "Would link" if dry_run else "Linked"
-                            linked_count += 1
-                            matched = True
-                            if verbose:
-                                self.stdout.write(self.style.SUCCESS(
-                                    f"{action} '{song.title}' (code: {song.code}) to {composer.full_name} "
-                                    f"(matched on last name: '{last_name}')"
-                                ))
-                            break  # Stop after first match
-
+                        if composer and composer not in matched_composers:
+                            matched_composers.append(composer)
                     except Exception as e:
                         if verbose:
-                            self.stdout.write(self.style.ERROR(f"Error linking '{song.title}': {str(e)}"))
+                            self.stdout.write(self.style.ERROR(f"Error finding composer for '{last_name}': {str(e)}"))
 
-            if not matched:
+            if not matched_composers:
                 not_found_count += 1
                 if verbose:
                     self.stdout.write(self.style.WARNING(
                         f"Composer not found for '{song.title}' (tried last names: {last_names})"
                     ))
+                continue
+
+            # Skip songs with multiple composers (for manual handling)
+            if len(matched_composers) > 1:
+                multi_composer_count += 1
+                if verbose:
+                    self.stdout.write(self.style.WARNING(
+                        f"Skipped multi-composer song: '{song.title}' (composers: {', '.join([c.full_name for c in matched_composers])})"
+                    ))
+                continue
+
+            # Link single-composer songs
+            composer = matched_composers[0]
+            if not dry_run:
+                # Clear existing SongComposer entries (if any)
+                song.song_composers.all().delete()
+
+                # Set the legacy composer field
+                song.composer = composer
+                song.save()
+
+                # Create SongComposer entry with 100% split
+                SongComposer.objects.create(
+                    song=song,
+                    composer=composer,
+                    split_percentage=100.0,
+                    notes=f"Linked via PRS data (composers: {composers_text})"
+                )
+
+            linked_count += 1
+            action = "Would link" if dry_run else "Linked"
+            if verbose:
+                self.stdout.write(self.style.SUCCESS(
+                    f"{action} '{song.title}' (code: {song.code}) to {composer.full_name} (100%)"
+                ))
 
         # Print summary
         self.stdout.write("\n" + "="*70)
         self.stdout.write(self.style.SUCCESS("Linking Summary:"))
         self.stdout.write(self.style.SUCCESS(f"  Successfully {'would link' if dry_run else 'linked'}: {linked_count} songs"))
-        self.stdout.write(self.style.SUCCESS(f"  Already linked: {already_linked_count} songs"))
+        self.stdout.write(self.style.SUCCESS(f"  Already linked via SongComposer: {already_linked_count} songs"))
         self.stdout.write(self.style.SUCCESS(f"  Not linked (composer not found): {not_found_count} songs"))
         self.stdout.write(self.style.SUCCESS(f"  Skipped (no composers info): {no_composers_count} songs"))
+        self.stdout.write(self.style.WARNING(f"  Skipped (multi-composer, needs manual review): {multi_composer_count} songs"))
 
         if sample_size > 0:
             self.stdout.write(self.style.WARNING(f"\nOnly processed {sample_size} records (sample mode)"))

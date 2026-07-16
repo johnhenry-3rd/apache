@@ -1,0 +1,55 @@
+{% extends 'artist_logs/base.html' %}
+
+{% block content %}
+<div class="prs-admin-container">
+    <h1 class="prs-admin-title">Verify Backup: {{ backup_filename }}</h1>
+
+    <div class="card mb-4" style="background-color: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);">
+        <div class="card-body">
+            <h5 class="card-title" style="color: var(--apache-gold);">Backup Metadata</h5>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item" style="background-color: transparent; color: var(--apache-light);">
+                    <strong>Backup Date:</strong> {{ metadata.backup_date|default:"Unknown" }}
+                </li>
+                <li class="list-group-item" style="background-color: transparent; color: var(--apache-light);">
+                    <strong>Django Version:</strong> {{ metadata.django_version|default:"Unknown" }}
+                </li>
+                <li class="list-group-item" style="background-color: transparent; color: var(--apache-light);">
+                    <strong>App Version:</strong> {{ metadata.app_version|default:"Unknown" }}
+                </li>
+                <li class="list-group-item" style="background-color: transparent; color: var(--apache-light);">
+                    <strong>Created By:</strong> {{ metadata.created_by|default:"Unknown" }}
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="card mb-4" style="background-color: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);">
+        <div class="card-body">
+            <h5 class="card-title" style="color: var(--apache-gold);">Model Counts</h5>
+            <div class="table-responsive">
+                <table class="table table-dark table-striped">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Record Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for model_name, count in model_counts.items %}
+                        <tr>
+                            <td>{{ model_name }}</td>
+                            <td>{{ count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <a href="{% url 'artist_logs:backup_list' %}" class="btn btn-outline-light">
+        <i class="fas fa-arrow-left me-1"></i> Back to Backups
+    </a>
+</div>
+{% endblock %}

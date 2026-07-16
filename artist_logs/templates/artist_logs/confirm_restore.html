@@ -1,0 +1,56 @@
+{% extends 'artist_logs/base.html' %}
+
+{% block content %}
+<div class="prs-admin-container">
+    <h1 class="prs-admin-title">Confirm Restore</h1>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="message {% if message.tags %}{{ message.tags }}{% else %}message-info{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>⚠️ Warning:</strong> Restoring this backup will <strong>overwrite all existing data</strong> in your database.
+        This action <strong>cannot be undone</strong>.
+    </div>
+
+    <div class="card mb-4" style="background-color: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);">
+        <div class="card-body">
+            <h5 class="card-title" style="color: var(--apache-gold);">Backup Details</h5>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item" style="background-color: transparent; color: var(--apache-light);">
+                    <strong>Filename:</strong> {{ backup_filename }}
+                </li>
+                <li class="list-group-item" style="background-color: transparent; color: var(--apache-light);">
+                    <strong>Created:</strong> {{ metadata.backup_date|default:"Unknown" }}
+                </li>
+                <li class="list-group-item" style="background-color: transparent; color: var(--apache-light);">
+                    <strong>Method:</strong> {{ metadata.backup_method|default:"Unknown" }}
+                </li>
+                <li class="list-group-item" style="background-color: transparent; color: var(--apache-light);">
+                    <strong>Created By:</strong> {{ metadata.created_by|default:"Unknown" }}
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <form method="post" action="{% url 'artist_logs:restore_database' %}">
+        {% csrf_token %}
+        <input type="hidden" name="backup_filename" value="{{ backup_filename }}">
+        <div class="d-flex gap-2">
+            <a href="{% url 'artist_logs:backup_list' %}" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-exclamation-triangle me-1"></i> Yes, Restore Database
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

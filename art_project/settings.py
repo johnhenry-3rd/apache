@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
 
     # Your apps
     'artist_logs.apps.ArtistLogsConfig',  # Make sure you have this in artist_logs/apps.py

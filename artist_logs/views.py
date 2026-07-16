@@ -63,8 +63,8 @@ from datetime import datetime
 from django.db import transaction
 from django.views.decorators.http import require_POST
 from django.shortcuts import redirect
-from django.utils import timezone
-from django.http import StreamingHttpResponse
+import gzip
+import shutil
 
 # =============================================
 # LOCAL APPLICATION IMPORTS
@@ -151,6 +151,33 @@ upload_progress = {
     'errors': [],
     'time': 0
 }
+
+def restore_model_data(data):
+    """
+    Helper function to restore data for a single model.
+    """
+    models_to_restore = [
+        ('IncomeType', IncomeType),
+        ('Source', Source),
+        ('Artist', Artist),
+        ('Composer', Composer),
+        ('Song', Song),
+        ('UploadHistory', UploadHistory),
+        ('PaymentStatement', PaymentStatement),
+        ('Prs_data', Prs_data),
+        ('PaymentPlan', PaymentPlan),
+    ]
+
+    for model_name, model in models_to_restore:
+        if model_name in data and data[model_name]:
+            try:
+                serialized_data = json.dumps(data[model_name])
+                for deserialized_obj in deserialize('json', serialized_data):
+                    deserialized_obj.save()
+            except Exception as e:
+                print(f"Error restoring {model_name}: {str(e)}")
+                continue
+
 # =============================================
 # HELPER FUNCTIONS FOR CSV PROCESSING
 # =============================================
@@ -1176,58 +1203,23 @@ def song_composer_splits(request, song_id):
 # Backup/Restore Views
 # =============================================
 
-
-
-# Add this helper function at the top of your views.py
-def restore_model_data(data):
-    """
-    Helper function to restore data from serialized backup.
-    """
-    # Define models in dependency order (parents first)
-    models_to_restore = [
-        ('IncomeType', IncomeType),
-        ('Source', Source),
-        ('Artist', Artist),
-        ('Composer', Composer),
-        ('Song', Song),
-        ('UploadHistory', UploadHistory),
-        ('PaymentStatement', PaymentStatement),
-        ('Prs_data', Prs_data),
-        ('PaymentPlan', PaymentPlan),
-    ]
-
-    for model_name, model in models_to_restore:
-        if model_name in data and data[model_name]:
-            try:
-                # Deserialize the data
-                serialized_data = json.dumps(data[model_name])
-                objects = deserialize('json', serialized_data)
-
-                # Save each object
-                for obj in objects:
-                    # Handle both new and existing objects
-                    obj.object.save()
-            except Exception as e:
-                print(f"Error restoring {model_name}: {str(e)}")
-                continue
-
 @require_POST
 def backup_database(request):
     """
-    Create a backup of all PRS-related data using Django's serialization.
-    This ensures a consistent format that can be properly verified and restored.
+    Create a compressed JSON backup of all PRS-related data.
+    Uses Django's serialization and compresses the output.
     """
     try:
-        # Create backup directory if it doesn't exist
         backup_dir = os.path.join(settings.BASE_DIR, 'backups')
         os.makedirs(backup_dir, exist_ok=True)
 
-        # Generate backup filename with timestamp
-        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
-        backup_file = os.path.join(backup_dir, f'prs_backup_{timestamp}.json')
+        # Check if directory is writable
+        if not os.access(backup_dir, os.W_OK):
+            messages.error(request, "❌ Backup directory is not writable. Check permissions.")
+            return redirect('artist_logs:backup_list')
 
-        # Get all model data using Django's serialization
-        data = {}
+        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+        backup_file = os.path.join(backup_dir, f'prs_backup_{timestamp}.json.gz')
 
         # Define models in dependency order (parents first)
         models_to_backup = [
@@ -1242,15 +1234,14 @@ def backup_database(request):
             ('PaymentPlan', PaymentPlan),
         ]
 
+        data = {}
         for model_name, model in models_to_backup:
             try:
                 records = model.objects.all()
-                # Serialize with natural keys to handle relationships properly
                 serialized = serialize('json', records, use_natural_foreign_keys=True)
-                # Convert string to list
                 data[model_name] = json.loads(serialized)
             except Exception as e:
-                print(f"Error serializing {model_name}: {str(e)}")
+                messages.warning(request, f"⚠️ Skipped {model_name} due to error: {str(e)}")
                 data[model_name] = []
                 continue
 
@@ -1264,13 +1255,22 @@ def backup_database(request):
             'created_by': str(request.user) if request.user.is_authenticated else 'system'
         }
 
-        # Write to file with proper JSON formatting
-        with open(backup_file, 'w') as f:
+        # Write to a temporary file first
+        temp_file = os.path.join(backup_dir, f'prs_backup_{timestamp}.json')
+        with open(temp_file, 'w') as f:
             json.dump(data, f, indent=2, cls=DjangoJSONEncoder)
 
-        messages.success(request, f"✅ Database backup created: {os.path.basename(backup_file)}")
+        # Compress the file
+        with open(temp_file, 'rb') as f_in:
+            with gzip.open(backup_file, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+
+        # Remove the temporary file
+        os.remove(temp_file)
+
+        messages.success(request, f"✅ Backup created: {os.path.basename(backup_file)}")
     except Exception as e:
-        messages.error(request, f"❌ Error creating backup: {str(e)}")
+        messages.error(request, f"❌ Backup failed: {str(e)}")
         import traceback
         print(f"Backup error: {str(e)}\n{traceback.format_exc()}")
 
@@ -1279,11 +1279,10 @@ def backup_database(request):
 @require_POST
 def restore_database(request):
     """
-    Restore database from a specific backup file.
-    Only handles Django serialization format backups.
+    Restore database from a backup file.
+    Validates the backup, checks for corruption, and restores in a transaction.
     """
     backup_filename = request.POST.get('backup_filename')
-
     if not backup_filename:
         messages.error(request, "❌ No backup file specified.")
         return redirect('artist_logs:backup_list')
@@ -1296,44 +1295,99 @@ def restore_database(request):
         return redirect('artist_logs:backup_list')
 
     try:
-        # Load backup data
-        with open(backup_path, 'r') as f:
-            data = json.load(f)
+        # Check if the file is a gzip file
+        if backup_filename.endswith('.gz'):
+            with gzip.open(backup_path, 'rt') as f:
+                data = json.load(f)
+        else:
+            with open(backup_path, 'r') as f:
+                data = json.load(f)
 
-        # Check if this is a valid Django serialization backup
+        # Validate backup structure
         if not isinstance(data, dict) or 'metadata' not in data:
-            messages.error(request, f"❌ Backup file {backup_filename} is not in the expected format.")
+            messages.error(request, f"❌ Backup file {backup_filename} is corrupted or invalid.")
             return redirect('artist_logs:backup_list')
 
-        # Check backup method
         backup_method = data.get('metadata', {}).get('backup_method', 'unknown')
         if backup_method != 'django_serialization':
-            messages.error(request, f"❌ Backup file {backup_filename} was created with {backup_method}. Please create a new backup with the current method.")
+            messages.error(request, f"❌ Backup file {backup_filename} was created with {backup_method}. Use a compatible backup.")
             return redirect('artist_logs:backup_list')
 
-        # Clear existing data in reverse order of dependencies
+        # Start a transaction
         with transaction.atomic():
             # Delete all existing data in reverse order of dependencies
-            PaymentPlan.objects.all().delete()
-            Prs_data.objects.all().delete()
-            PaymentStatement.objects.all().delete()
-            UploadHistory.objects.all().delete()
-            Song.objects.all().delete()
-            Composer.objects.all().delete()
-            Source.objects.all().delete()
-            IncomeType.objects.all().delete()
-            Artist.objects.all().delete()
+            models_to_clear = [
+                PaymentPlan, Prs_data, PaymentStatement, UploadHistory,
+                Song, Composer, Source, IncomeType, Artist
+            ]
+            for model in models_to_clear:
+                model.objects.all().delete()
 
-            # Restore all data
-            restore_model_data(data)
+            # Restore data in dependency order
+            models_to_restore = [
+                ('IncomeType', IncomeType),
+                ('Source', Source),
+                ('Artist', Artist),
+                ('Composer', Composer),
+                ('Song', Song),
+                ('UploadHistory', UploadHistory),
+                ('PaymentStatement', PaymentStatement),
+                ('Prs_data', Prs_data),
+                ('PaymentPlan', PaymentPlan),
+            ]
+
+            for model_name, model in models_to_restore:
+                if model_name in data and data[model_name]:
+                    try:
+                        # Deserialize and restore
+                        serialized_data = json.dumps(data[model_name])
+                        for obj in serialize('json', model.objects.none()):
+                            pass  # This is a placeholder to get the deserializer
+                        from django.core.serializers import deserialize
+                        for deserialized_obj in deserialize('json', serialized_data):
+                            deserialized_obj.save()
+                    except Exception as e:
+                        messages.warning(request, f"⚠️ Failed to restore {model_name}: {str(e)}")
+                        continue
 
         messages.success(request, f"✅ Database restored from backup: {backup_filename}")
+    except json.JSONDecodeError:
+        messages.error(request, f"❌ Backup file {backup_filename} is corrupted (invalid JSON).")
     except Exception as e:
-        messages.error(request, f"❌ Error restoring backup: {str(e)}")
+        messages.error(request, f"❌ Restore failed: {str(e)}")
         import traceback
         print(f"Restore error: {str(e)}\n{traceback.format_exc()}")
 
     return redirect('artist_logs:backup_list')
+
+def confirm_restore(request, backup_filename):
+    """
+    Show a confirmation page before restoring a backup.
+    """
+    backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+    backup_path = os.path.join(backup_dir, backup_filename)
+
+    if not os.path.exists(backup_path):
+        messages.error(request, f"❌ Backup file {backup_filename} not found.")
+        return redirect('artist_logs:backup_list')
+
+    # Get backup metadata (if available)
+    metadata = {}
+    try:
+        if backup_filename.endswith('.gz'):
+            with gzip.open(backup_path, 'rt') as f:
+                data = json.load(f)
+        else:
+            with open(backup_path, 'r') as f:
+                data = json.load(f)
+        metadata = data.get('metadata', {})
+    except Exception:
+        pass
+
+    return render(request, 'artist_logs/confirm_restore.html', {
+        'backup_filename': backup_filename,
+        'metadata': metadata
+    })
 
 @require_POST
 def clear_prs_data(request):
@@ -1463,7 +1517,8 @@ def song_detail(request, pk):
         Song.objects.prefetch_related(
             Prefetch('song_composers', queryset=SongComposer.objects.select_related('composer').order_by('-split_percentage')),
             Prefetch('prs_records', queryset=Prs_data.objects.select_related('source', 'income_type', 'payment_statement').order_by('-income_period'))
-        )
+        ),
+        pk=pk 
     )
 
     # Get PRS records with optimized query
@@ -1864,143 +1919,73 @@ def mark_prs_data_as_unpaid(request, pk):
 # =============================================
 
 def backup_list(request):
-    """
-    List all available backups with proper error handling for invalid JSON.
-    """
     backup_dir = os.path.join(settings.BASE_DIR, 'backups')
     backups = []
 
     if os.path.exists(backup_dir):
-        try:
-            for filename in sorted(os.listdir(backup_dir), reverse=True):
-                if filename.startswith('prs_backup_') and filename.endswith('.json'):
-                    filepath = os.path.join(backup_dir, filename)
-                    try:
-                        stat = os.stat(filepath)
+        for filename in sorted(os.listdir(backup_dir), reverse=True):
+            if filename.endswith('.json.gz') or filename.endswith('.json'):
+                filepath = os.path.join(backup_dir, filename)
+                backup_info = {
+                    'filename': filename,
+                    'size': os.path.getsize(filepath),
+                    'size_formatted': f"{os.path.getsize(filepath) / (1024 * 1024):.2f} MB",
+                    'modified': timezone.datetime.fromtimestamp(os.path.getmtime(filepath)).strftime('%Y-%m-%d %H:%M:%S'),
+                    'has_error': False,
+                    'error_message': '',
+                    'backup_date': 'Unknown'
+                }
 
-                        # Initialize metadata with defaults
-                        metadata = {
-                            'backup_date': None,
-                            'django_version': 'Unknown',
-                            'app_version': 'Unknown'
-                        }
+                # Try to read metadata
+                try:
+                    if filename.endswith('.gz'):
+                        with gzip.open(filepath, 'rt') as f:
+                            data = json.load(f)
+                    else:
+                        with open(filepath, 'r') as f:
+                            data = json.load(f)
+                    if 'metadata' in data:
+                        backup_info['backup_date'] = data['metadata'].get('backup_date', 'Unknown')
+                except Exception as e:
+                    backup_info['has_error'] = True
+                    backup_info['error_message'] = str(e)
 
-                        # Try to read metadata from the backup file
-                        try:
-                            with open(filepath, 'r') as f:
-                                first_part = f.read(10240)  # Read first 10KB
-                                try:
-                                    data = json.loads(first_part)
-                                    if 'metadata' in data:
-                                        backup_date_str = data['metadata'].get('backup_date')
-                                        if backup_date_str:
-                                            try:
-                                                # Handle ISO format with timezone
-                                                metadata['backup_date'] = datetime.fromisoformat(
-                                                    backup_date_str.replace('Z', '+00:00')
-                                                )
-                                            except ValueError:
-                                                metadata['backup_date'] = datetime.fromtimestamp(stat.st_mtime)
-                                        else:
-                                            metadata['backup_date'] = datetime.fromtimestamp(stat.st_mtime)
-                                        metadata.update({
-                                            'django_version': data['metadata'].get('django_version', 'Unknown'),
-                                            'app_version': data['metadata'].get('app_version', 'Unknown')
-                                        })
-                                except json.JSONDecodeError as e:
-                                    print(f"JSON decode error in {filename}: {str(e)}")
-                                    metadata['error'] = f"Invalid JSON: {str(e)}"
-                                    metadata['backup_date'] = datetime.fromtimestamp(stat.st_mtime)
-                        except Exception as e:
-                            print(f"Error reading {filename}: {str(e)}")
-                            metadata['error'] = f"Read error: {str(e)}"
-                            metadata['backup_date'] = datetime.fromtimestamp(stat.st_mtime)
-
-                        # Format the backup date for display
-                        backup_date_display = (
-                            metadata['backup_date'].strftime('%Y-%m-%d %H:%M:%S')
-                            if metadata['backup_date']
-                            else 'Unknown'
-                        )
-
-                        backups.append({
-                            'filename': filename,
-                            'size': stat.st_size,
-                            'modified': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
-                            'size_formatted': format_file_size(stat.st_size),
-                            'backup_date': backup_date_display,
-                            'backup_date_obj': metadata['backup_date'],
-                            'django_version': metadata.get('django_version', 'Unknown'),
-                            'app_version': metadata.get('app_version', 'Unknown'),
-                            'has_error': 'error' in metadata,
-                            'error_message': metadata.get('error', '')
-                        })
-                    except Exception as e:
-                        print(f"Error processing {filename}: {str(e)}")
-                        continue
-
-        except Exception as e:
-            print(f"Error listing backups: {str(e)}")
-            messages.error(request, f"Error accessing backup directory: {str(e)}")
-
-    # Sort by backup_date_obj (newest first), fallback to modified date
-    backups.sort(
-        key=lambda x: x['backup_date_obj'] if x['backup_date_obj'] else
-        datetime.fromtimestamp(os.path.getmtime(os.path.join(backup_dir, x['filename']))),
-        reverse=True
-    )
+                backups.append(backup_info)
 
     return render(request, 'artist_logs/backup_list.html', {
         'backups': backups,
-        'backup_count': len(backups)
+        'backup_count': len(backups),
     })
 
-def verify_backup(request, filename):
-    """
-    Verify the contents of a backup file.
-    Only handles manual serialization format.
-    """
+def verify_backup(request, backup_filename):
     backup_dir = os.path.join(settings.BASE_DIR, 'backups')
-    backup_path = os.path.join(backup_dir, filename)
+    backup_path = os.path.join(backup_dir, backup_filename)
 
     if not os.path.exists(backup_path):
-        messages.error(request, f"Backup file {filename} not found.")
+        messages.error(request, f"Backup file {backup_filename} not found.")
         return redirect('artist_logs:backup_list')
 
     try:
-        with open(backup_path, 'r') as f:
-            data = json.load(f)
+        if backup_filename.endswith('.gz'):
+            with gzip.open(backup_path, 'rt') as f:
+                data = json.load(f)
+        else:
+            with open(backup_path, 'r') as f:
+                data = json.load(f)
 
-        # Check if this is a valid manual serialization backup
-        if not isinstance(data, dict) or 'metadata' not in data:
-            messages.error(request, f"Backup file {filename} is not in the expected format.")
-            return redirect('artist_logs:backup_list')
-
-        # Get record counts
-        counts = {}
+        # Extract model counts
+        model_counts = {}
         for model_name, records in data.items():
-            if model_name == 'metadata':
-                continue
-            if isinstance(records, list):
-                counts[model_name] = len(records)
-            else:
-                counts[model_name] = 0
+            if model_name != 'metadata':
+                model_counts[model_name] = len(records)
 
-        # Get backup date
-        backup_date = data.get('metadata', {}).get('backup_date', 'Unknown')
-
-        return render(request, 'artist_logs/backup_verify.html', {
-            'filename': filename,
-            'counts': counts,
-            'backup_date': backup_date,
-            'backup_method': data.get('metadata', {}).get('backup_method', 'unknown')
+        return render(request, 'artist_logs/verify_backup.html', {
+            'backup_filename': backup_filename,
+            'metadata': data.get('metadata', {}),
+            'model_counts': model_counts,
         })
-
-    except json.JSONDecodeError as e:
-        messages.error(request, f"Error reading backup file (invalid JSON): {str(e)}")
-        return redirect('artist_logs:backup_list')
     except Exception as e:
-        messages.error(request, f"Error verifying backup: {str(e)}")
+        messages.error(request, f"Failed to verify backup: {str(e)}")
         return redirect('artist_logs:backup_list')
 
 def download_backup(request, filename):
@@ -2017,21 +2002,18 @@ def download_backup(request, filename):
         return redirect('artist_logs:backup_list')
 
 @require_POST
-def delete_backup(request, filename):
-    """
-    Delete a backup file.
-    """
+def delete_backup(request, backup_filename):
     backup_dir = os.path.join(settings.BASE_DIR, 'backups')
-    backup_path = os.path.join(backup_dir, filename)
+    backup_path = os.path.join(backup_dir, backup_filename)
 
     if os.path.exists(backup_path):
         try:
             os.remove(backup_path)
-            messages.success(request, f"✅ Backup {filename} deleted successfully.")
+            messages.success(request, f"Backup {backup_filename} deleted successfully.")
         except Exception as e:
-            messages.error(request, f"❌ Error deleting backup: {str(e)}")
+            messages.error(request, f"Failed to delete backup: {str(e)}")
     else:
-        messages.error(request, f"❌ Backup file {filename} not found.")
+        messages.error(request, f"Backup {backup_filename} not found.")
 
     return redirect('artist_logs:backup_list')
 
@@ -2179,11 +2161,23 @@ def remove_composer_from_song(request, song_id, composer_id):
     Remove a composer from a song.
     """
     song = get_object_or_404(Song, pk=song_id)
-    song_composer = get_object_or_404(SongComposer, song=song, composer_id=composer_id)
+    composer = get_object_or_404(Composer, pk=composer_id)  # Ensure composer exists
+
+    try:
+        song_composer = get_object_or_404(
+            SongComposer,
+            song_id=song_id,
+            composer_id=composer_id
+        )
+    except SongComposer.DoesNotExist:
+        messages.error(
+            request,
+            f"Composer {composer.full_name} is not linked to song {song.title}."
+        )
+        return redirect('artist_logs:song_edit', pk=song.id)
 
     composer_name = song_composer.composer.full_name
     song_composer.delete()
-
     messages.success(request, f"Removed {composer_name} from {song.title}")
 
     # If this was the last composer, clear the legacy composer field

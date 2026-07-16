@@ -548,6 +548,11 @@ class Song(models.Model):
             'updated_at': self.updated_at,
         }
     
+    @property
+    def is_fully_split(self):
+        """Check if the total split percentage equals 100%."""
+        return self.total_split_percentage == 100
+    
 class SongComposer(models.Model):
     """
     Intermediate model to handle multiple composers per song with royalty splits.

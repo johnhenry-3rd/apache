@@ -139,7 +139,7 @@
                                 <td>{{ sc.split_percentage }}%</td>
                                 <td>{{ sc.notes|default:"-" }}</td>
                                 <td>
-                                    <form method="post" action="{% url 'artist_logs:remove_composer_from_song' song.id sc.id %}" class="d-inline">
+                                    <form method="post" action="{% url 'artist_logs:remove_composer_from_song' song.id sc.composer.id %}" class="d-inline">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-outline-danger btn-sm" title="Remove">
                                             <i class="fas fa-trash"></i>

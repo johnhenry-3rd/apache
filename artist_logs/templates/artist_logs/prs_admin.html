@@ -217,9 +217,7 @@
     <!-- JavaScript for SSE Streaming Upload -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        console.log("DEBUG: DOM loaded, setting up upload form");
-
-        // Get references to your existing elements
+        // Get references to your elements
         const uploadForm = document.getElementById('csvUploadForm');
         const fileInput = document.getElementById('csv_file');
         const uploadButton = document.getElementById('uploadButton');
@@ -228,39 +226,39 @@
         const progressPercent = document.getElementById('progressPercent');
         const statusMessage = document.getElementById('statusMessage');
         const fileNameSpan = document.getElementById('file-name');
+        const cancelButton = document.getElementById('cancelButton');
 
-        // Safety check: Ensure all elements exist
-        if (!uploadForm || !fileInput || !uploadButton || !progressContainer ||
-            !progressBar || !progressPercent || !statusMessage || !fileNameSpan) {
-            console.error("DEBUG: One or more required elements not found!");
-            return;
-        }
+        // Track submission state
+        let isSubmitting = false;
+        let eventSource = null;
 
-        // Update file name display when file is selected
+        // Update file name display
         fileInput.addEventListener('change', function() {
             fileNameSpan.textContent = this.files.length > 0 ? this.files[0].name : 'No file chosen';
         });
 
-        // Handle form submission with safety checks
+        // Handle form submission - ONLY ONE HANDLER
         uploadForm.addEventListener('submit', function(e) {
-            console.log("DEBUG: Form submit handler called");
+            // Prevent ALL default behavior
+            e.preventDefault();
+            e.stopImmediatePropagation();  // ✅ Prevents any other handlers
 
-            // Safety check: Prevent double submission
-            if (uploadForm.dataset.submitting === 'true') {
-                console.log("DEBUG: Form already submitting, ignoring duplicate submission");
+            // Prevent double submission
+            if (isSubmitting) {
+                console.log("DEBUG: Form already submitting, ignoring");
                 return;
             }
+            isSubmitting = true;
 
-            e.preventDefault();
-            e.stopPropagation();  // Prevent any other handlers from running
+            // Clear previous state
+            if (eventSource) {
+                eventSource.close();
+            }
 
-            // Mark form as submitting
-            uploadForm.dataset.submitting = 'true';
-
+            // Validate file
             if (!fileInput.files || fileInput.files.length === 0) {
-                console.log("DEBUG: No file selected");
                 statusMessage.innerHTML = '<div class="alert alert-danger">Please select a file to upload.</div>';
-                delete uploadForm.dataset.submitting;
+                isSubmitting = false;
                 return;
             }
 
@@ -273,131 +271,96 @@
             uploadButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Uploading...';
 
             // Get CSRF token
-            const csrfToken = uploadForm.querySelector('[name=csrfmiddlewaretoken]')?.value;
-            if (!csrfToken) {
-                console.error("DEBUG: CSRF token not found!");
-                statusMessage.innerHTML = '<div class="alert alert-danger">CSRF token missing. Please refresh the page.</div>';
-                uploadButton.disabled = false;
-                uploadButton.innerHTML = '<i class="fas fa-upload me-1"></i> Upload CSV';
-                delete uploadForm.dataset.submitting;
-                return;
-            }
-
+            const csrfToken = uploadForm.querySelector('[name=csrfmiddlewaretoken]').value;
             const formData = new FormData(uploadForm);
 
             // Connect to SSE endpoint
-            console.log("DEBUG: Starting SSE connection");
-            let eventSource;
-            try {
-                eventSource = new EventSource(`/sse-upload-progress/?csrfmiddlewaretoken=${csrfToken}`);
+            eventSource = new EventSource(`/sse-upload-progress/?csrfmiddlewaretoken=${csrfToken}`);
 
-                eventSource.onopen = function() {
-                    console.log("DEBUG: SSE connection opened");
-                };
+            eventSource.onmessage = function(e) {
+                try {
+                    const data = JSON.parse(e.data);
 
-                eventSource.onmessage = function(e) {
-                    console.log("DEBUG: SSE message received:", e.data);
-                    try {
-                        const data = JSON.parse(e.data);
-                        console.log("DEBUG: Parsed SSE data:", data);
+                    // Update progress bar
+                    if (data.total > 0) {
+                        const percent = Math.round((data.current / data.total) * 100);
+                        progressBar.style.width = percent + '%';
+                        progressPercent.textContent = percent + '%';
+                    }
 
-                        // Update progress bar
-                        if (data.total > 0) {
-                            const percent = Math.round((data.current / data.total) * 100);
-                            progressBar.style.width = percent + '%';
-                            progressPercent.textContent = percent + '%';
-                        }
+                    // Update status message
+                    if (data.status === 'processing') {
+                        statusMessage.innerHTML = `<div class="alert alert-info mb-0">
+                            Processing: ${data.current}/${data.total} records
+                        </div>`;
+                    }
 
-                        // Update status message
-                        if (data.status === 'processing') {
-                            statusMessage.innerHTML = `<div class="alert alert-info mb-0">
-                                Processing: ${data.current}/${data.total} records
-                            </div>`;
-                        }
-
-                        // Handle completion
-                        if (data.status === 'complete') {
-                            console.log("DEBUG: Upload complete via SSE");
-                            eventSource.close();
-
-                            let message = `<div class="alert alert-success mb-0">
-                                <i class="fas fa-check-circle me-2"></i>
-                                Upload complete! Imported ${data.imported} records in ${data.time}s
-                            </div>`;
-
-                            if (data.errors && data.errors.length > 0) {
-                                message += `<div class="alert alert-warning mb-0 mt-2">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    ${data.errors.length} errors occurred.
-                                </div>`;
-                            }
-
-                            statusMessage.innerHTML = message;
-                            cleanupUpload();
-                        }
-                    } catch (error) {
-                        console.error('Error parsing SSE message:', error, 'Raw data:', e.data);
-                        eventSource.close();
-                        statusMessage.innerHTML = '<div class="alert alert-danger mb-0">Error processing server response.</div>';
+                    // Handle completion
+                    if (data.status === 'complete') {
                         cleanupUpload();
-                    }
-                };
+                        let message = `<div class="alert alert-success mb-0">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Upload complete! Imported ${data.imported} records in ${data.time}s
+                        </div>`;
 
-                eventSource.onerror = function() {
-                    console.error("DEBUG: SSE connection error");
-                    eventSource.close();
-                    statusMessage.innerHTML = '<div class="alert alert-danger mb-0">Connection lost. Please try again.</div>';
+                        if (data.errors && data.errors.length > 0) {
+                            message += `<div class="alert alert-warning mb-0 mt-2">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                ${data.errors.length} errors occurred.
+                            </div>`;
+                        }
+
+                        statusMessage.innerHTML = message;
+                        setTimeout(() => window.location.reload(), 2000);
+                    }
+                } catch (error) {
+                    console.error('Error parsing SSE message:', error, 'Raw data:', e.data);
                     cleanupUpload();
-                };
+                    statusMessage.innerHTML = '<div class="alert alert-danger mb-0">Error processing server response.</div>';
+                }
+            };
 
-                // Submit the form via fetch
-                console.log("DEBUG: Submitting form via fetch");
-                fetch(uploadForm.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                }).then(response => {
-                    console.log("DEBUG: Fetch response status:", response.status);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                }).then(data => {
-                    console.log("DEBUG: Fetch response data:", data);
-                }).catch(error => {
-                    console.error('Upload failed:', error);
-                    eventSource.close();
-                    statusMessage.innerHTML = '<div class="alert alert-danger mb-0">Upload failed. See console for details.</div>';
-                    cleanupUpload();
-                });
-
-            } catch (error) {
-                console.error("DEBUG: Failed to create EventSource:", error);
-                statusMessage.innerHTML = '<div class="alert alert-danger mb-0">Failed to start upload. See console for details.</div>';
+            eventSource.onerror = function() {
                 cleanupUpload();
-            }
+                statusMessage.innerHTML = '<div class="alert alert-danger mb-0">Connection lost. Please try again.</div>';
+            };
 
-            // Helper function to clean up after upload
+            // Submit via fetch (this replaces the native form submission)
+            fetch(uploadForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).catch(error => {
+                console.error('Upload failed:', error);
+                cleanupUpload();
+                statusMessage.innerHTML = '<div class="alert alert-danger mb-0">Upload failed. See console for details.</div>';
+            });
+
+            // Helper function to clean up
             function cleanupUpload() {
                 if (eventSource) {
                     eventSource.close();
+                    eventSource = null;
                 }
+                isSubmitting = false;
                 uploadButton.disabled = false;
                 uploadButton.innerHTML = '<i class="fas fa-upload me-1"></i> Upload CSV';
-                delete uploadForm.dataset.submitting;
             }
         });
 
-        // Cancel button functionality
-        document.getElementById('cancelButton')?.addEventListener('click', function() {
-            console.log("DEBUG: Cancel button clicked");
+        // Cancel button
+        cancelButton.addEventListener('click', function() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+            isSubmitting = false;
             progressContainer.style.display = 'none';
             uploadButton.disabled = false;
             uploadButton.innerHTML = '<i class="fas fa-upload me-1"></i> Upload CSV';
             statusMessage.innerHTML = '<div class="alert alert-warning mb-0">Upload cancelled</div>';
-            delete uploadForm.dataset.submitting;
         });
     });
     </script>
@@ -405,14 +368,7 @@
     <!-- Testing Buttons -->
     <div class="testing-buttons" style="margin-top: 30px;">
         <div class="d-flex flex-wrap gap-2 mb-2">
-            <!-- Clear PRS Data & History Button -->
-            <form method="post" action="{% url 'artist_logs:clear_prs_data' %}" class="d-inline">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-danger btn-sm"
-                        onclick="return confirm('⚠️ WARNING: This will delete ALL PRS data and upload history. ✅ Composers and Songs will be PRESERVED. This cannot be undone! Are you sure?')">
-                    <i class="fas fa-trash me-1"></i> Clear PRS Data & History
-                </button>
-            </form>
+
 
             <!-- Backup Database Button -->
             <form method="post" action="{% url 'artist_logs:backup_database' %}" class="d-inline">
@@ -422,11 +378,18 @@
                     <i class="fas fa-save me-1"></i> Backup Database
                 </button>
             </form>
-
             <!-- View Backups Button -->
             <a href="{% url 'artist_logs:backup_list' %}" class="btn btn-info btn-sm">
                 <i class="fas fa-list me-1"></i> View Backups
             </a>
+             <!-- Clear PRS Data & History Button -->
+            <form method="post" action="{% url 'artist_logs:clear_prs_data' %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm"
+                        onclick="return confirm('⚠️ WARNING: This will delete ALL PRS data and upload history. ✅ Composers and Songs will be PRESERVED. This cannot be undone! Are you sure?')">
+                    <i class="fas fa-trash me-1"></i> Clear PRS Data & History
+                </button>
+            </form>           
         </div>
         <div class="form-text" style="color: rgba(255,255,255,0.6);">
             <i class="fas fa-info-circle me-1"></i>

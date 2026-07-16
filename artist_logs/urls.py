@@ -74,6 +74,16 @@ urlpatterns = [
     path('prs-admin/', views.prs_admin, name='prs_admin'),
     path('test-backups/', views.test_backup_list, name='test_backup_list'),
     path('sse-upload-progress/', views.sse_upload_progress, name='sse_upload_progress'),
+    path('backup/', views.backup_database, name='backup_database'),
+    path('backups/', views.backup_list, name='backup_list'),
+    path('restore/', views.restore_database, name='restore_database'),
+    path('restore/confirm/<str:backup_filename>/', views.confirm_restore, name='confirm_restore'),
+    path('backups/verify/<str:backup_filename>/', views.verify_backup, name='verify_backup'),
+    path('backups/restore/confirm/<str:backup_filename>/', views.confirm_restore, name='confirm_restore'),
+    path('backups/restore/', views.restore_database, name='restore_database'),
+    path('backups/download/<str:backup_filename>/', views.download_backup, name='download_backup'),
+    path('backups/delete/<str:backup_filename>/', views.delete_backup, name='delete_backup'),
+
 
 
     # ======================
@@ -83,3 +93,4 @@ urlpatterns = [
     path('sse-upload-progress/', sse_upload_progress, name='sse_upload_progress'),
     #path('__debug__/', include('debug_toolbar.urls')),
     ]
+

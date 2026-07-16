@@ -86,32 +86,32 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for sc in song_composers %}
-                            <tr>
-                                <td>
-                                    <a href="{% url 'artist_logs:composer_detail' sc.composer.id %}" class="text-gold">
-                                        {% if forloop.first %}
-                                        <i class="fas fa-star me-1" style="color: var(--apache-gold);" title="Primary Composer"></i>
-                                        {% endif %}
-                                        {{ sc.composer.full_name }}
-                                    </a>
-                                </td>
-                                <td {% if sc.split_percentage < 5 %}class="text-warning"{% endif %}>
-                                    {{ sc.split_percentage }}%
-                                </td>
-                                <td title="£{{ total_earnings|floatformat:2 }} × {{ sc.split_percentage }}%">
-                                    £{{ total_earnings|multiply:sc.split_percentage|floatformat:2 }}
-                                </td>
-                                <td>{{ sc.notes|default:"-" }}</td>
-                                <td>
-                                    <form method="post" action="{% url 'artist_logs:remove_composer_from_song' song.id sc.id %}" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Remove">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
+                            {% for sc in song.song_composers.all %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'artist_logs:composer_detail' sc.composer.id %}" class="text-gold">
+                                            {% if forloop.first %}
+                                            <i class="fas fa-star me-1" style="color: var(--apache-gold);" title="Primary Composer"></i>
+                                            {% endif %}
+                                            {{ sc.composer.full_name }}
+                                        </a>
+                                    </td>
+                                    <td {% if sc.split_percentage < 5 %}class="text-warning"{% endif %}>
+                                        {{ sc.split_percentage }}%
+                                    </td>
+                                    <td title="£{{ total_earnings|floatformat:2 }} × {{ sc.split_percentage }}%">
+                                        £{{ total_earnings|multiply:sc.split_percentage|floatformat:2 }}
+                                    </td>
+                                    <td>{{ sc.notes|default:"-" }}</td>
+                                    <td>
+                                        <form method="post" action="{% url 'artist_logs:remove_composer_from_song' song.id sc.composer.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Remove">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
                             {% endfor %}
                         </tbody>
                         <tfoot class="table-dark">
