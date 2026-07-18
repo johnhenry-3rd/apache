@@ -2,6 +2,11 @@
 
 {% block title %}{{ composer.full_name }} - Apache Music{% endblock %}
 
+<pre>
+Total Earnings: £{{ total_earnings|floatformat:2 }}
+Unpaid Earnings: £{{ unpaid_earnings|floatformat:2 }}
+</pre>
+
 {% block content %}
 <div class="apache-card">
     <!-- Header with Back Button -->
@@ -110,6 +115,31 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons (Moved to Top) -->
+    <div class="apache-card mb-4">
+        <div class="d-flex gap-2">
+            <a href="{% url 'artist_logs:composer_edit' composer.id %}" class="btn btn-primary">
+                <i class="fas fa-edit me-1"></i> Edit Composer
+            </a>
+            <a href="{% url 'artist_logs:composer_payment_history' composer.id %}" class="btn btn-outline-gold">
+                <i class="fas fa-pound-sign me-1"></i> Payment History
+            </a>
+            <a href="{% url 'artist_logs:composer_list' %}" class="btn btn-outline-light">
+                <i class="fas fa-list me-1"></i> All Composers
+            </a>
+            <!-- Mark All Unpaid as Paid Button -->
+            {% if unpaid_earnings and unpaid_earnings > 0 %}
+                <form method="post" action="{% url 'artist_logs:mark_composer_unpaid_as_paid' composer.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success"
+                            onclick="return confirm('Are you sure you want to mark all unpaid entries for {{ composer.full_name }} as paid?')">
+                        <i class="fas fa-check-circle me-1"></i> Mark All Unpaid as Paid
+                    </button>
+                </form>
+            {% endif %}
         </div>
     </div>
 
@@ -276,21 +306,6 @@
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
-    </div>
-
-    <!-- Action Buttons -->
-    <div class="apache-card mt-4">
-        <div class="d-flex gap-2">
-            <a href="{% url 'artist_logs:composer_edit' composer.id %}" class="btn btn-primary">
-                <i class="fas fa-edit me-1"></i> Edit Composer
-            </a>
-            <a href="{% url 'artist_logs:composer_payment_history' composer.id %}" class="btn btn-outline-gold">
-                <i class="fas fa-pound-sign me-1"></i> Payment History
-            </a>
-            <a href="{% url 'artist_logs:composer_list' %}" class="btn btn-outline-light">
-                <i class="fas fa-list me-1"></i> All Composers
-            </a>
         </div>
     </div>
 </div>

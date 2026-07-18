@@ -1,4 +1,5 @@
 {% extends 'artist_logs/base.html' %}
+{% load custom_filters %}
 
 {% block extra_css %}
 <style>
@@ -398,67 +399,68 @@
     </div>
 </div>
 
-    <!-- Payment Statements Section -->
+    <!-- Remittance Advice Section -->
     <div class="payment-section">
         <div class="payment-title">
-            <h2>Payment Statements</h2>
-            <a href="{% url 'artist_logs:payment_statement_list' %}" class="view-all-link">
-                View All →
-            </a>
+            <h2>Remittance Advice</h2>
         </div>
-        <p>Create and manage payment statements to track payments for PRS records.</p>
+        <p>Generate a remittance advice report for unpaid royalties (£100 or more per composer).</p>
 
-        <a href="{% url 'artist_logs:create_payment_statement' %}" class="payment-button">
-            <i class="fas fa-plus"></i> Create New Payment Statement
-        </a>
+        <!-- Generate Remittance Advice Button -->
+        <form method="get" action="{% url 'artist_logs:generate_remittance_advice' %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="payment-button" style="background-color: var(--apache-gold); color: var(--apache-dark);">
+                <i class="fas fa-file-invoice me-1"></i> Generate Remittance Advice
+            </button>
+        </form>
 
-        {% if payment_statements %}
-        <div class="recent-imports" style="margin-top: 30px;">
-            <h3 style="color: var(--apache-gold);">Recent Payment Statements</h3>
-            <table class="imports-table">
-                <thead>
-                    <tr>
-                        <th>Statement Number</th>
-                        <th>Period</th>
-                        <th>Date</th>
-                        <th>Total Amount</th>
-                        <th>Status</th>
-                        <th>Records</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for statement in payment_statements %}
-                    <tr>
-                        <td>{{ statement.statement_number }}</td>
-                        <td>{{ statement.start_period }} - {{ statement.end_period }}</td>
-                        <td>{{ statement.statement_date }}</td>
-                        <td>£{{ statement.total_amount|floatformat:2 }}</td>
-                        <td>
-                            <span class="status-badge status-{{ statement.status|lower }}">
-                                {{ statement.get_status_display }}
-                            </span>
-                        </td>
-                        <td>{{ statement.prs_records.count }}</td>
-                        <td>
-                            <a href="{% url 'artist_logs:payment_statement_detail' statement.id %}"
-                               class="action-button" style="background-color: var(--apache-gold); color: var(--apache-dark);">
-                                <i class="fas fa-eye"></i> View
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <a href="{% url 'artist_logs:payment_statement_list' %}" class="view-all-link">
-                View All Payment Statements →
-            </a>
+        <!-- Optional: Add a filter for income period -->
+        <div class="remittance-filters" style="margin-top: 15px;">
+            <form method="get" action="{% url 'artist_logs:generate_remittance_advice' %}" class="d-flex gap-2">
+                {% csrf_token %}
+                <input
+                    type="text"
+                    name="income_period"
+                    class="form-control form-control-sm"
+                    placeholder="Filter by Income Period (e.g., 202604)"
+                    style="max-width: 200px; background-color: rgba(255, 255, 255, 0.1); color: var(--apache-light); border: 1px solid rgba(255, 255, 255, 0.2);"
+                >
+                <button type="submit" class="btn btn-sm" style="background-color: var(--apache-gold); color: var(--apache-dark);">
+                    <i class="fas fa-filter me-1"></i> Apply Filter
+                </button>
+            </form>
         </div>
-        {% else %}
-        <div class="alert alert-info" style="color: rgba(255, 255, 255, 0.8); margin-top: 20px;">
-            No payment statements have been created yet.
+
+        <!-- Preview of Composers with Unpaid Royalties ≥ £100 -->
+        <div class="remittance-preview" style="margin-top: 20px;">
+            <h3 style="color: var(--apache-gold);">Composers with Unpaid Royalties (≥ £100)</h3>
+            {% if unpaid_composers %}
+                <table class="imports-table">
+                    <thead>
+                        <tr>
+                            <th>Composer Name</th>
+                            <th>Total Unpaid (£)</th>
+                            <th>Songs Contributed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for composer in unpaid_composers %}
+                            {% if composer.total >= 100 %}
+                                <tr>
+                                    <td>{{ composer.song__song_composers__composer__full_name }}</td>
+                                    <td>£{{ composer.total|floatformat:2 }}</td>
+                                    <td>{{ composer.song_count }}</td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="alert alert-info" style="color: rgba(255, 255, 255, 0.8);">
+                    No composers have unpaid royalties ≥ £100.
+                </div>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
 
     <!-- Upload History Section -->

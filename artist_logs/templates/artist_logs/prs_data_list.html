@@ -1,108 +1,62 @@
-{% extends 'artist_logs/base.html' %}
+<!-- artist_logs/templates/artist_logs/prs_data_list.html -->
+{% extends "artist_logs/base.html" %}
 
 {% block content %}
-<div class="data-table-container">
-    <div class="container">
-        <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 style="color: var(--apache-gold);">PRS Data Records</h1>
-        </div>
+<div class="container">
+    <h1>PRS Data Records</h1>
 
-        <!-- Search and Filter -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <input type="text" id="searchInput" class="form-control" placeholder="Search records...">
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- Debug: Print the number of records passed to the template -->
+    <p>[DEBUG] Total records in template: {{ prs_records.count }}</p>
 
-        <!-- Data Table -->
-        <div class="card">
-            <div class="card-body">
-                <div style="overflow-x: auto;">
-                    <table class="table table-dark table-striped" id="dataTable">
-                        <thead>
-                            <tr>
-                                <th>Song Title</th>
-                                <th>Artist</th>
-                                <th>Royalty Payable</th>
-                                <th>Income Period</th>
-                                <th>Client</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in prs_data_list %}
-                            <tr>
-                                <td>{{ item.Song_Title|default:"N/A" }}</td>
-                                <td>{{ item.Artist|default:"N/A" }}</td>
-                                <td>£{{ item.Royalty_Payable|default:0|floatformat:2 }}</td>
-                                <td>{{ item.Income_Period|default:"N/A" }}</td>
-                                <td>{{ item.Client_Name|default:"N/A" }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center">No records found</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    {% if prs_records %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Song</th>
+                    <th>Income Period</th>
+                    <th>Source</th>
+                    <th>Royalty Payable</th>
+                    <th>Paid</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in prs_records %}
+                <tr>
+                    <td>{{ record.id }}</td>
+                    <td>
+                        {% if record.song %}
+                            <a href="{% url 'artist_logs:song_detail' record.song.id %}">
+                                {{ record.song.title }}
+                            </a>
+                        {% else %}
+                            No Song
+                        {% endif %}
+                    </td>
+                    <td>{{ record.income_period }}</td>
+                    <td>
+                        {% if record.source %}
+                            {{ record.source.name }}
+                        {% else %}
+                            No Source
+                        {% endif %}
+                    </td>
+                    <td>£{{ record.royalty_payable|floatformat:2 }}</td>
+                    <td>
+                        {% if record.is_paid %}
+                            <span class="badge bg-success">Paid</span>
+                        {% else %}
+                            <span class="badge bg-warning">Unpaid</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="alert alert-info">
+            No PRS records found.
         </div>
-
-        <!-- Pagination -->
-        {% include 'artist_logs/pagination.html' with page=page_obj %}
-    </div>
+    {% endif %}
 </div>
-{% endblock %}
-
-{% block extra_css %}
-<style>
-    .data-table-container {
-        padding: 0; /* Remove padding since base.html handles spacing */
-    }
-
-    .card {
-        background-color: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        margin-bottom: 20px;
-    }
-
-    .table {
-        color: var(--apache-light);
-    }
-
-    .table th {
-        color: var(--apache-gold);
-        border-bottom: 1px solid var(--apache-gold);
-    }
-
-    .form-control {
-        background-color: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: var(--apache-light);
-    }
-
-    .form-control::placeholder {
-        color: rgba(255, 255, 255, 0.5);
-    }
-</style>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    // Search functionality
-    document.getElementById('searchInput').addEventListener('keyup', function() {
-        const input = this.value.toLowerCase();
-        const rows = document.querySelectorAll('#dataTable tbody tr');
-
-        rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            row.style.display = text.includes(input) ? '' : 'none';
-        });
-    });
-</script>
 {% endblock %}

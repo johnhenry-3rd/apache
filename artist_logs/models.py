@@ -1082,6 +1082,40 @@ class Prs_data(models.Model):
     # Query Methods
     # ====================
 
+        @classmethod
+        def get_unpaid_earnings_by_composer(cls):
+            """
+            Returns a list of composers with their total unpaid earnings.
+            Uses SongComposer splits to calculate the composer's share.
+            """
+            from django.db.models import Sum, F, DecimalField, OuterRef, Subquery
+            from .models import SongComposer
+
+            # Subquery to get the split percentage for each Prs_data record
+            split_subquery = Subquery(
+                SongComposer.objects.filter(
+                    song=OuterRef('song'),
+                    composer=OuterRef('song__composer')
+                ).values('split_percentage')[:1]
+            )
+
+            # Annotate each record with the composer's share
+            return list(
+                cls.objects
+                .filter(is_paid=False)
+                .select_related('song')
+                .annotate(
+                    split_percentage=split_subquery,
+                    composer_share=F('royalty_payable') * (F('split_percentage') / Decimal(100))
+                )
+                .values('song__composer__full_name')
+                .annotate(total=Sum('composer_share'))
+                .order_by('-total')
+            )
+    
+    
+    
+    
     @classmethod
     def get_paid_records(cls):
         """

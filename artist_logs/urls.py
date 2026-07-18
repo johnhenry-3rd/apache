@@ -1,6 +1,9 @@
 from django.urls import path
 from artist_logs import views
 from .progress_tracker import sse_upload_progress 
+from .views import generate_remittance_advice
+from .views import prs_data_list, prs_data_detail 
+from .views import mark_composer_unpaid_as_paid
 
 app_name = 'artist_logs'
 
@@ -19,6 +22,7 @@ urlpatterns = [
     path('composers/<int:pk>/edit/', views.composer_edit, name='composer_edit'),
     path('composers/<int:pk>/payments/', views.composer_payment_history, name='composer_payment_history'),
     path('composers/<int:pk>/songs/', views.composer_songs, name='composer_songs'),
+    path('composers/<int:pk>/mark-unpaid-as-paid/', mark_composer_unpaid_as_paid, name='mark_composer_unpaid_as_paid'),
 
     # ======================
     # SONG URLs
@@ -37,6 +41,8 @@ urlpatterns = [
     path('prs-data/<int:pk>/', views.prs_data_detail, name='prs_record_detail'),
     path('prs-admin/', views.prs_admin, name='prs_admin'),
     path('data-table/', views.data_table, name='data_table'),
+    path('prs-data/', prs_data_list, name='prs_data_list'),
+    path('prs-data/<int:pk>/', prs_data_detail, name='prs_data_detail'),
 
     # ======================
     # PAYMENT URLs
@@ -92,5 +98,15 @@ urlpatterns = [
     path('quick-add-composer/', views.quick_add_composer, name='quick_add_composer'),
     path('sse-upload-progress/', sse_upload_progress, name='sse_upload_progress'),
     #path('__debug__/', include('debug_toolbar.urls')),
-    ]
+
+    # ======================
+    # Remittance
+    # ======================
+
+    path(
+        'generate-remittance-advice/',
+        generate_remittance_advice,
+        name='generate_remittance_advice'
+    ),
+]
 

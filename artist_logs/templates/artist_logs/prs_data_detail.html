@@ -1,3 +1,4 @@
+<!-- artist_logs/templates/artist_logs/prs_data_detail.html -->
 {% extends "artist_logs/base.html" %}
 
 {% block content %}
@@ -6,216 +7,130 @@
 
     <!-- Back to list link -->
     <div class="mb-3">
-        <a href="{% url 'artist_logs:prs_data_list' %}" class="btn btn-secondary">
+        <a href="{% url 'artist_logs:data_table' %}" class="btn btn-secondary">
             ← Back to All Records
         </a>
     </div>
 
-    <!-- Record Details in a Card Layout -->
+
+    <!-- Basic Information -->
     <div class="card mb-4">
         <div class="card-header">
-            <h2>Basic Information</h2>
+            <h3>Basic Information</h3>
         </div>
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6">
-                    <h4>Client Information</h4>
-                    <dl class="row">
-                        <dt class="col-sm-5">Client Code:</dt>
-                        <dd class="col-sm-7">{{ record.Client_Code }}</dd>
-
-                        <dt class="col-sm-5">Client Name:</dt>
-                        <dd class="col-sm-7">{{ record.Client_Name }}</dd>
-
-                        <dt class="col-sm-5">Payee Code:</dt>
-                        <dd class="col-sm-7">{{ record.Payee_Code }}</dd>
-
-                        <dt class="col-sm-5">Payee Name:</dt>
-                        <dd class="col-sm-7">{{ record.Payee_Name }}</dd>
-                    </dl>
-                </div>
-                <div class="col-md-6">
-                    <h4>Song Information</h4>
-                    <dl class="row">
-                        <dt class="col-sm-5">Song Code:</dt>
-                        <dd class="col-sm-7">{{ record.Song_Code }}</dd>
-
-                        <dt class="col-sm-5">Song Title:</dt>
-                        <dd class="col-sm-7">{{ record.Song_Title }}</dd>
-
-                        <dt class="col-sm-5">Composers:</dt>
-                        <dd class="col-sm-7">{{ record.Composers }}</dd>
-
-                        <dt class="col-sm-5">Artist:</dt>
-                        <dd class="col-sm-7">{{ record.Artist }}</dd>
-                    </dl>
+                    <p><strong>ID:</strong> {{ record.id }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Financial Information Card -->
+    <!-- Client Information -->
     <div class="card mb-4">
         <div class="card-header">
-            <h2>Financial Information</h2>
+            <h3>Client Information</h3>
         </div>
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6">
-                    <dl class="row">
-                        <dt class="col-sm-5">Income Type:</dt>
-                        <dd class="col-sm-7">{{ record.Income_Type }}</dd>
-
-                        <dt class="col-sm-5">Income Type Name:</dt>
-                        <dd class="col-sm-7">{{ record.Income_Type_Name }}</dd>
-
-                        <dt class="col-sm-5">Main Income Type:</dt>
-                        <dd class="col-sm-7">{{ record.Main_Income_Type_Name }}</dd>
-
-                        <dt class="col-sm-5">Units:</dt>
-                        <dd class="col-sm-7">{{ record.Units }}</dd>
-                    </dl>
+                    <p><strong>Client Code:</strong> {{ record.client_code|default:"-" }}</p>
+                    <p><strong>Client Name:</strong> {{ record.client_name|default:"-" }}</p>
                 </div>
                 <div class="col-md-6">
-                    <dl class="row">
-                        <dt class="col-sm-5">Amount Collected:</dt>
-                        <dd class="col-sm-7">${{ record.Amount_Collected|floatformat:2 }}</dd>
-
-                        <dt class="col-sm-5">Royalty Payable:</dt>
-                        <dd class="col-sm-7">${{ record.Royalty_Payable|floatformat:2 }}</dd>
-
-                        <dt class="col-sm-5">Royalty Payout %:</dt>
-                        <dd class="col-sm-7">{{ record.Royalty_Payout_Percentage }}%</dd>
-
-                        <dt class="col-sm-5">% Collected by BMG:</dt>
-                        <dd class="col-sm-7">{{ record.Percentage_Collected_by_BMG }}%</dd>
-                    </dl>
+                    <p><strong>Payee Code:</strong> {{ record.payee_code|default:"-" }}</p>
+                    <p><strong>Payee Name:</strong> {{ record.payee_name|default:"-" }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Source and Period Information Card -->
+    <!-- Song Information -->
     <div class="card mb-4">
         <div class="card-header">
-            <h2>Source and Period Information</h2>
+            <h3>Song Information</h3>
         </div>
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6">
-                    <dl class="row">
-                        <dt class="col-sm-5">Source Code:</dt>
-                        <dd class="col-sm-7">{{ record.Source_Code }}</dd>
-
-                        <dt class="col-sm-5">Source Name:</dt>
-                        <dd class="col-sm-7">{{ record.Source_Name }}</dd>
-
-                        <dt class="col-sm-5">Income Period:</dt>
-                        <dd class="col-sm-7">{{ record.Income_Period }}</dd>
-
-                        <dt class="col-sm-5">Statement ID Year:</dt>
-                        <dd class="col-sm-7">{{ record.Statement_ID_Year }}</dd>
-                    </dl>
-                </div>
-                <div class="col-md-6">
-                    <dl class="row">
-                        <dt class="col-sm-5">Statement ID Number:</dt>
-                        <dd class="col-sm-7">{{ record.Statement_ID_Number }}</dd>
-
-                        <dt class="col-sm-5">Domestic/Foreign:</dt>
-                        <dd class="col-sm-7">{{ record.Domestic_Or_Foreign_Source_Indicator }}</dd>
-
-                        <dt class="col-sm-5">Foreign Source:</dt>
-                        <dd class="col-sm-7">{{ record.Foreign_Source }}</dd>
-
-                        <dt class="col-sm-5">Country:</dt>
-                        <dd class="col-sm-7">{{ record.Royalty_Country_Code }} - {{ record.Royalty_Country_Description }}</dd>
-                    </dl>
+                    <p><strong>Song Code:</strong> {{ record.song.code|default:"-" }}</p>
+                    <p><strong>Song Title:</strong> {{ record.song.title|default:"-" }}</p>
+                    <p><strong>Composers:</strong>
+                        {% if record.song %}
+                            {% for composer in record.song.song_composers.all %}
+                                {{ composer.composer.full_name }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </p>
+                    <p><strong>Artist:</strong> {{ record.artist|default:"-" }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Additional Information Card -->
+    <!-- Financial Information -->
     <div class="card mb-4">
         <div class="card-header">
-            <h2>Additional Information</h2>
+            <h3>Financial Information</h3>
         </div>
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6">
-                    <dl class="row">
-                        <dt class="col-sm-5">Catalogue No:</dt>
-                        <dd class="col-sm-7">{{ record.Catalogue_No }}</dd>
-
-                        <dt class="col-sm-5">ISRC:</dt>
-                        <dd class="col-sm-7">{{ record.ISRC }}</dd>
-
-                        <dt class="col-sm-5">Album/Production:</dt>
-                        <dd class="col-sm-7">{{ record.Album_Or_Production }}</dd>
-
-                        <dt class="col-sm-5">Episode:</dt>
-                        <dd class="col-sm-7">{{ record.Episode }}</dd>
-                    </dl>
-                </div>
-                <div class="col-md-6">
-                    <dl class="row">
-                        <dt class="col-sm-5">License Number:</dt>
-                        <dd class="col-sm-7">{{ record.Licence_Number }}</dd>
-
-                        <dt class="col-sm-5">Original Source (Received):</dt>
-                        <dd class="col-sm-7">{{ record.Original_Source_As_Received }}</dd>
-
-                        <dt class="col-sm-5">Original Source:</dt>
-                        <dd class="col-sm-7">{{ record.Original_Source }}</dd>
-                    </dl>
+                    <p><strong>Income Type:</strong> {{ record.income_type|default:"-" }}</p>
+                    <p><strong>Income Type Name:</strong> {{ record.get_income_type_display|default:"-" }}</p>
+                    <p><strong>Main Income Type:</strong> {{ record.main_income_type|default:"-" }}</p>
+                    <p><strong>Units:</strong> {{ record.units|default:"-" }}</p>
+                    <p><strong>Amount Collected:</strong> £{{ record.amount_collected|floatformat:2|default:"0.00" }}</p>
+                    <p><strong>Royalty Payable:</strong> £{{ record.royalty_payable|floatformat:2|default:"0.00" }}</p>
+                    <p><strong>Royalty Payout %:</strong> {{ record.royalty_payout_percentage|default:"-" }}%</p>
+                    <p><strong>% Collected by BMG:</strong> {{ record.percentage_collected_by_bmg|default:"-" }}%</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Back to List Button -->
-    <div class="mt-4">
-        <a href="{% url 'artist_logs:prs_data_list' %}" class="btn btn-primary">
-            ← Back to All Records
-        </a>
+    <!-- Source and Period Information -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3>Source and Period Information</h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Source Code:</strong> {{ record.source.code|default:"-" }}</p>
+                    <p><strong>Source Name:</strong> {{ record.source.name|default:"-" }}</p>
+                    <p><strong>Income Period:</strong> {{ record.income_period|default:"-" }}</p>
+                    <p><strong>Statement ID Year:</strong> {{ record.statement_id_year|default:"-" }}</p>
+                    <p><strong>Statement ID Number:</strong> {{ record.statement_id_number|default:"-" }}</p>
+                    <p><strong>Domestic/Foreign:</strong> {{ record.get_domestic_foreign_display|default:"-" }}</p>
+                    <p><strong>Foreign Source:</strong> {{ record.foreign_source|default:"-" }}</p>
+                    <p><strong>Country:</strong> {{ record.country|default:"-" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Information -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3>Additional Information</h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Catalogue No:</strong> {{ record.catalogue_no|default:"-" }}</p>
+                    <p><strong>ISRC:</strong> {{ record.isrc|default:"-" }}</p>
+                    <p><strong>Album/Production:</strong> {{ record.album_or_production|default:"-" }}</p>
+                    <p><strong>Episode:</strong> {{ record.episode|default:"-" }}</p>
+                    <p><strong>License Number:</strong> {{ record.license_number|default:"-" }}</p>
+                    <p><strong>Original Source (Received):</strong> {{ record.original_source_received|default:"-" }}</p>
+                    <p><strong>Original Source:</strong> {{ record.original_source|default:"-" }}</p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-
-<!-- Basic CSS for this page -->
-<style>
-    .card {
-        margin-bottom: 20px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-    }
-    .card-header {
-        background-color: #f8f9fa;
-        padding: 10px 15px;
-        border-bottom: 1px solid #ddd;
-    }
-    .card-body {
-        padding: 15px;
-    }
-    dt {
-        font-weight: 500;
-    }
-    dd {
-        margin-bottom: 10px;
-    }
-    .btn {
-        padding: 8px 15px;
-        border-radius: 4px;
-        text-decoration: none;
-        display: inline-block;
-    }
-    .btn-primary {
-        background-color: #007bff;
-        color: white;
-        border: 1px solid #007bff;
-    }
-    .btn-primary:hover {
-        background-color: #0069d9;
-    }
-</style>
 {% endblock %}

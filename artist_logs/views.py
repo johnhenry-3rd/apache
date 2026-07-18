@@ -10,7 +10,6 @@ import re
 import time
 from collections import defaultdict
 from datetime import datetime, date, timedelta
-from decimal import Decimal
 from io import StringIO, TextIOWrapper
 from decimal import Decimal, InvalidOperation
 from .progress_tracker import upload_progress
@@ -39,7 +38,7 @@ from django.db import (
 )
 from django.db.models import (
     Q, Sum, Count, Case, When, F, Min, FloatField,
-    ExpressionWrapper, Prefetch
+    ExpressionWrapper, Prefetch, Value
 )
 from django.db.models.functions import Lower
 from django.http import (
@@ -58,13 +57,18 @@ from django.db.models import Q, Sum
 from django.http import JsonResponse
 import csv
 from io import TextIOWrapper
-from .models import Prs_data
 from datetime import datetime
 from django.db import transaction
 from django.views.decorators.http import require_POST
 from django.shortcuts import redirect
 import gzip
 import shutil
+from django.http import HttpResponse
+from django.db.models import Sum, F, DecimalField, OuterRef, Subquery
+from django.shortcuts import render
+from .forms import PRSUploadForm
+from django.db import connection
+from django.db.models.functions import Coalesce
 
 # =============================================
 # LOCAL APPLICATION IMPORTS
@@ -445,13 +449,11 @@ def format_file_size(size):
 # Main Views
 # =============================================
 
-
-
 @require_http_methods(["GET", "POST"])
 def prs_admin(request):
     """
     View for the PRS admin page.
-    Displays upload form, history, and recent records.
+    Displays upload form, history, recent records, and remittance advice.
     """
     # GET request: Display the page
     if request.method == 'GET':
@@ -466,7 +468,7 @@ def prs_admin(request):
                 'song__composer', 'song__song_composers__composer'
             ).order_by('-created_at')[:100]
 
-            # Get counts
+            # Get counts for the dashboard
             counts = {
                 'prs_count': Prs_data.objects.count(),
                 'song_count': Song.objects.count(),
@@ -479,7 +481,30 @@ def prs_admin(request):
             # Get recent payment statements
             payment_statements = PaymentStatement.objects.all().order_by('-created_at')[:5]
 
-            # Close old connections
+            # --- Fetch unpaid composers and their total unpaid earnings ---
+            # Query to calculate composer shares and sum per composer
+            unpaid_composers = list(
+                Prs_data.objects
+                .filter(is_paid=False)
+                .values('song__song_composers__composer__full_name')  # Group by composer
+                .annotate(
+                    total=Sum(
+                        F('royalty_payable') * (F('song__song_composers__split_percentage') / Decimal(100)),
+                        output_field=DecimalField()
+                    )
+                )
+                .order_by('-total')
+            )
+
+            # Add song counts to each composer dictionary
+            for composer in unpaid_composers:
+                composer_name = composer['song__song_composers__composer__full_name']
+                composer['song_count'] = Prs_data.objects.filter(
+                    song__song_composers__composer__full_name=composer_name,
+                    is_paid=False
+                ).count()
+
+            # Close old database connections
             connection.close_if_unusable_or_obsolete()
 
             return render(request, 'artist_logs/prs_admin.html', {
@@ -488,6 +513,7 @@ def prs_admin(request):
                 'form': PRSUploadForm(),
                 **counts,
                 'payment_statements': payment_statements,
+                'unpaid_composers': unpaid_composers,
             })
 
         except Exception as e:
@@ -499,7 +525,7 @@ def prs_admin(request):
 
     # POST request: Handle file upload
     elif request.method == 'POST' and 'csv_file' in request.FILES:
-        return upload_prs_csv(request)  # Delegate to upload function
+        return upload_prs_csv(request)  # Delegate to your upload function
 
     # If POST but no file
     messages.error(request, "No file was uploaded")
@@ -1228,6 +1254,7 @@ def backup_database(request):
             ('Artist', Artist),
             ('Composer', Composer),
             ('Song', Song),
+            ('SongComposer', SongComposer),  # Added SongComposer
             ('UploadHistory', UploadHistory),
             ('PaymentStatement', PaymentStatement),
             ('Prs_data', Prs_data),
@@ -1308,6 +1335,11 @@ def restore_database(request):
             messages.error(request, f"❌ Backup file {backup_filename} is corrupted or invalid.")
             return redirect('artist_logs:backup_list')
 
+        # Check if SongComposer is in the backup
+        if 'SongComposer' not in data:
+            messages.error(request, f"❌ Backup file {backup_filename} is missing the SongComposer table.")
+            return redirect('artist_logs:backup_list')
+
         backup_method = data.get('metadata', {}).get('backup_method', 'unknown')
         if backup_method != 'django_serialization':
             messages.error(request, f"❌ Backup file {backup_filename} was created with {backup_method}. Use a compatible backup.")
@@ -1318,6 +1350,7 @@ def restore_database(request):
             # Delete all existing data in reverse order of dependencies
             models_to_clear = [
                 PaymentPlan, Prs_data, PaymentStatement, UploadHistory,
+                SongComposer,  # Added SongComposer
                 Song, Composer, Source, IncomeType, Artist
             ]
             for model in models_to_clear:
@@ -1330,6 +1363,7 @@ def restore_database(request):
                 ('Artist', Artist),
                 ('Composer', Composer),
                 ('Song', Song),
+                ('SongComposer', SongComposer),  # Added SongComposer
                 ('UploadHistory', UploadHistory),
                 ('PaymentStatement', PaymentStatement),
                 ('Prs_data', Prs_data),
@@ -1341,9 +1375,6 @@ def restore_database(request):
                     try:
                         # Deserialize and restore
                         serialized_data = json.dumps(data[model_name])
-                        for obj in serialize('json', model.objects.none()):
-                            pass  # This is a placeholder to get the deserializer
-                        from django.core.serializers import deserialize
                         for deserialized_obj in deserialize('json', serialized_data):
                             deserialized_obj.save()
                     except Exception as e:
@@ -1660,16 +1691,26 @@ def song_edit(request, pk):
 # Composer Views
 # =============================================
 
+# artist_logs/views.py
+from django.shortcuts import render
+from django.db.models import (
+    Sum, F, DecimalField, Count, Q, Case, When, Prefetch
+)
+from decimal import Decimal
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from .models import Composer, Song, Prs_data, SongComposer
+
 def composer_list(request):
     """
-    List all composers with filtering and pagination.
+    List all composers with filtering, pagination, and correct earnings (accounting for splits).
+    Composers with no SongComposer links will show £0.00 for earnings.
     """
-    # Get filter parameters from request
+    # --- Filtering Logic ---
     search_query = request.GET.get('search', '')
     status_filter = request.GET.get('status', '')
     vat_filter = request.GET.get('vat', '')
 
-    # Base queryset
+    # Base queryset: Include ALL composers, even those with no SongComposer links
     composers = Composer.objects.all().order_by('last_name', 'first_name')
 
     # Apply filters
@@ -1692,26 +1733,95 @@ def composer_list(request):
         elif vat_filter == 'no':
             composers = composers.filter(vat_registered=False)
 
-    # Annotate with song count and earnings
+    # --- Annotation Logic (Using Subquery and ExpressionWrapper for Splits) ---
+    # Subquery to get the split percentage for each song and composer
+    split_subquery = Subquery(
+        SongComposer.objects.filter(
+            song=OuterRef('songs'),
+            composer=OuterRef('pk')
+        ).values('split_percentage')[:1]
+    )
+
+    # Wrap the division operation in ExpressionWrapper to set output_field
+    split_percentage_divided = ExpressionWrapper(
+        split_subquery / Decimal(100),
+        output_field=DecimalField()
+    )
+
+    # Annotate composers with song count and earnings (accounting for splits)
+    # Use Coalesce to default to 0 if there are no SongComposer links
     composers = composers.annotate(
-        song_count=Count('songs'),
-        total_earnings=Sum('songs__prs_records__royalty_payable'),
-        unpaid_earnings=Sum(
-            Case(
-                When(songs__prs_records__is_paid=False, then='songs__prs_records__royalty_payable'),
-                default=0,
-                output_field=models.DecimalField()
-            )
+        song_count=Count('songs', distinct=True),
+        total_earnings=Coalesce(
+            Sum(
+                F('songs__prs_records__royalty_payable') * split_percentage_divided,
+                output_field=DecimalField()
+            ),
+            Value(0, output_field=DecimalField())  # Default to 0 if NULL
+        ),
+        unpaid_earnings=Coalesce(
+            Sum(
+                Case(
+                    When(
+                        songs__prs_records__is_paid=False,
+                        then=F('songs__prs_records__royalty_payable') * split_percentage_divided
+                    ),
+                    default=0,
+                    output_field=DecimalField()
+                )
+            ),
+            Value(0, output_field=DecimalField())  # Default to 0 if NULL
         )
     )
 
-    # Calculate totals for summary cards
+    # --- Summary Card Calculations (Accounting for Splits) ---
     total_songs = Song.objects.count()
-    total_earnings = Prs_data.objects.aggregate(total=Sum('royalty_payable'))['total'] or 0
-    unpaid_earnings = Prs_data.objects.filter(is_paid=False).aggregate(total=Sum('royalty_payable'))['total'] or 0
 
-    # Pagination
-    paginator = Paginator(composers, 20)  # Show 20 composers per page
+    # Subquery for summary cards: Get the split percentage for each song
+    summary_split_subquery = Subquery(
+        SongComposer.objects.filter(
+            song=OuterRef('song')
+        ).values('split_percentage')[:1]
+    )
+
+    # Wrap the division operation in ExpressionWrapper for summary cards
+    summary_split_percentage_divided = ExpressionWrapper(
+        summary_split_subquery / Decimal(100),
+        output_field=DecimalField()
+    )
+
+    # Total earnings across all composers (accounting for splits)
+    # Use Coalesce to default to 0 if there are no records
+    total_earnings = (
+        Prs_data.objects
+        .annotate(
+            composer_share=F('royalty_payable') * summary_split_percentage_divided
+        )
+        .aggregate(
+            total=Coalesce(
+                Sum('composer_share', output_field=DecimalField()),
+                Value(0, output_field=DecimalField())
+            )
+        )['total']
+    )
+
+    # Unpaid earnings across all composers (accounting for splits and filtering for unpaid records)
+    unpaid_earnings = (
+        Prs_data.objects
+        .filter(is_paid=False)
+        .annotate(
+            composer_share=F('royalty_payable') * summary_split_percentage_divided
+        )
+        .aggregate(
+            total=Coalesce(
+                Sum('composer_share', output_field=DecimalField()),
+                Value(0, output_field=DecimalField())
+            )
+        )['total']
+    )
+
+    # --- Pagination Logic ---
+    paginator = Paginator(composers, 20)
     page = request.GET.get('page')
     try:
         composers_page = paginator.page(page)
@@ -1720,6 +1830,7 @@ def composer_list(request):
     except EmptyPage:
         composers_page = paginator.page(paginator.num_pages)
 
+    # --- Render the Template ---
     return render(request, 'artist_logs/composer_list.html', {
         'composers': composers_page,
         'total_songs': total_songs,
@@ -1731,26 +1842,71 @@ def composer_list(request):
 
 def composer_detail(request, pk):
     """
-    Show details for a single composer.
+    Show details for a single composer, accounting for splits.
+    Includes functionality to mark all unpaid entries as paid.
     """
+    # --- Fetch the Composer ---
     composer = get_object_or_404(Composer, pk=pk)
 
-    # Get all songs by this composer
-    songs = Song.objects.filter(composer=composer).order_by('title').annotate(
+    # --- Fetch Songs by This Composer (via SongComposer) ---
+    songs = Song.objects.filter(song_composers__composer=composer).distinct().order_by('title')
+
+    # Annotate each song with PRS record count and total earnings (accounting for splits)
+    songs = songs.annotate(
         prs_count=Count('prs_records'),
-        total_earnings=Sum('prs_records__royalty_payable')
+        total_earnings=Sum(
+            F('prs_records__royalty_payable') * (F('song_composers__split_percentage') / Decimal(100)),
+            output_field=DecimalField()
+        )
     )
 
-    # Get all PRS records for this composer's songs
-    prs_records = Prs_data.objects.filter(song__composer=composer).order_by('-income_period')
+    # --- Fetch PRS Records for This Composer (via SongComposer) ---
+    # Use a subquery to get the split percentage for each song and composer
+    prs_records = (
+        Prs_data.objects
+        .filter(song__song_composers__composer=composer)
+        .select_related('song', 'source', 'income_type')
+        .order_by('-income_period')
+    )
 
-    # Calculate totals
-    total_earnings = prs_records.aggregate(total=Sum('royalty_payable'))['total'] or 0
-    unpaid_earnings = prs_records.filter(is_paid=False).aggregate(total=Sum('royalty_payable'))['total'] or 0
+    # --- Calculate Totals (Accounting for Splits) ---
+    # Subquery to get the split percentage for each song and composer
+    split_subquery = Subquery(
+        SongComposer.objects.filter(
+            song=OuterRef('song'),
+            composer=composer  # Use the composer object directly
+        ).values('split_percentage')[:1]
+    )
 
-    # Get payment plans for this composer
+    # Wrap the division operation in ExpressionWrapper to set output_field
+    split_percentage_divided = ExpressionWrapper(
+        split_subquery / Decimal(100),
+        output_field=DecimalField()
+    )
+
+    # Calculate total earnings for this composer (accounting for splits)
+    total_earnings = (
+        prs_records
+        .annotate(composer_share=F('royalty_payable') * split_percentage_divided)
+        .aggregate(total=Sum('composer_share', output_field=DecimalField()))['total'] or 0
+    )
+
+    # Calculate unpaid earnings for this composer (accounting for splits)
+    unpaid_earnings = (
+        prs_records.filter(is_paid=False)
+        .annotate(composer_share=F('royalty_payable') * split_percentage_divided)
+        .aggregate(total=Sum('composer_share', output_field=DecimalField()))['total'] or 0
+    )
+
+    # --- Fetch Payment Plans for This Composer ---
     payment_plans = PaymentPlan.objects.filter(composer=composer).order_by('-created_at')
 
+    # --- Debug: Print Composer Data ---
+    print(f"\n[DEBUG] Composer: {composer.full_name}")
+    print(f"  Total Earnings: £{total_earnings:.2f}")
+    print(f"  Unpaid Earnings: £{unpaid_earnings:.2f}")
+
+    # --- Render the Template ---
     return render(request, 'artist_logs/composer_detail.html', {
         'composer': composer,
         'songs': songs,
@@ -1759,6 +1915,48 @@ def composer_detail(request, pk):
         'unpaid_earnings': unpaid_earnings,
         'payment_plans': payment_plans,
     })
+
+def mark_composer_unpaid_as_paid(request, pk):
+    """
+    Mark all unpaid PRS records for a composer as paid.
+    """
+    composer = get_object_or_404(Composer, pk=pk)
+
+    # Get all unpaid PRS records for this composer (via SongComposer)
+    unpaid_records = Prs_data.objects.filter(
+        is_paid=False,
+        song__song_composers__composer=composer
+    )
+
+    # Mark all unpaid records as paid
+    updated_count = unpaid_records.update(is_paid=True)
+
+    # Add a success message
+    messages.success(request, f"Marked {updated_count} unpaid entries for {composer.full_name} as paid.")
+
+    # Redirect back to the composer detail page
+    return redirect('artist_logs:composer_detail', pk=composer.pk)
+
+def mark_composer_unpaid_as_paid(request, pk):
+    """
+    Mark all unpaid PRS records for a composer as paid.
+    """
+    composer = get_object_or_404(Composer, pk=pk)
+
+    # Get all unpaid PRS records for this composer (accounting for splits)
+    unpaid_records = Prs_data.objects.filter(
+        is_paid=False,
+        song__song_composers__composer=composer
+    )
+
+    # Mark all unpaid records as paid
+    updated_count = unpaid_records.update(is_paid=True)
+
+    # Add a success message
+    messages.success(request, f"Marked {updated_count} unpaid entries for {composer.full_name} as paid.")
+
+    # Redirect back to the composer detail page
+    return redirect('artist_logs:composer_detail', pk=composer.pk)
 
 def composer_create(request):
     """
@@ -1808,6 +2006,27 @@ def composer_payment_history(request, pk):
         'composer': composer,
         'payment_plans': payment_plans,
     })
+
+def mark_composer_unpaid_as_paid(request, pk):
+    """
+    Mark all unpaid PRS records for a composer as paid.
+    """
+    composer = get_object_or_404(Composer, pk=pk)
+
+    # Get all unpaid PRS records for this composer (accounting for splits)
+    unpaid_records = Prs_data.objects.filter(
+        is_paid=False,
+        song__song_composers__composer=composer
+    )
+
+    # Mark all unpaid records as paid
+    updated_count = unpaid_records.update(is_paid=True)
+
+    # Add a success message
+    messages.success(request, f"Marked {updated_count} unpaid entries for {composer.full_name} as paid.")
+
+    # Redirect back to the composer detail page
+    return redirect('artist_logs:composer_detail', pk=composer.pk)
 
 # =============================================
 # Payment Statement Views
@@ -1913,6 +2132,19 @@ def mark_prs_data_as_unpaid(request, pk):
 
     return redirect(request.META.get('HTTP_REFERER', 'artist_logs:data_table'))
 
+def prs_data_list(request):
+    """
+    List all PRS records.
+    """
+    # Fetch all PRS records, ordered by income period (newest first)
+    prs_records = Prs_data.objects.all().order_by('-income_period').select_related('song', 'source', 'income_type')
+
+    # Debug: Print the number of records fetched
+    print(f"[DEBUG] Fetched {prs_records.count()} PRS records.")
+
+    return render(request, 'artist_logs/prs_data_list.html', {
+        'prs_records': prs_records,
+    })
 
 # =============================================
 # Backup List and Management Views
@@ -2257,3 +2489,52 @@ def sse_upload_progress(request):
         progress_generator(),
         content_type='text/event-stream'
     )
+
+
+#Remittance section
+def generate_remittance_advice(request):
+    """
+    Generate a CSV remittance advice report for unpaid royalties (£100 or more per composer).
+    Accounts for composer splits and sums unpaid royalties per composer.
+    """
+    # Get income_period filter from query parameters
+    income_period = request.GET.get('income_period', None)
+
+    # Base query: Unpaid PRS records with linked songs and composers
+    prs_records = Prs_data.objects.filter(is_paid=False).select_related('song')
+
+    # Apply income_period filter if provided
+    if income_period:
+        prs_records = prs_records.filter(income_period=income_period)
+
+    # Query to calculate composer shares and sum per composer
+    remittance_data = (
+        prs_records
+        .values('song__song_composers__composer__full_name')  # Group by composer
+        .annotate(
+            total_unpaid=Sum(
+                F('royalty_payable') * (F('song__song_composers__split_percentage') / Decimal(100)),
+                output_field=DecimalField()
+            )
+        )
+        .filter(total_unpaid__gte=100)  # Only include composers with total ≥ £100
+        .order_by('song__song_composers__composer__full_name')
+    )
+
+    # Generate CSV
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="remittance_advice.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'Composer Name',
+        'Total Unpaid (£)'
+    ])
+
+    for row in remittance_data:
+        writer.writerow([
+            row['song__song_composers__composer__full_name'] or 'Unknown',
+            f"£{row['total_unpaid']:.2f}"
+        ])
+
+    return response
